@@ -14,15 +14,16 @@ We need to pick a stack before writing any code. The project is a single-player 
 - **Platform: Web browser.** No mobile-native, no Electron. Browser is the lowest-friction way to share and play.
 - **Art style: 2D pixel art.** Cheap to produce, visually distinctive, hides "amateur" look better than 3D or vector. Mix of hand-drawn (starter fish, simple decor) and asset packs (exotic species, complex decor).
 - **MVP save state: localStorage.** No backend, no accounts, no cloud sync until the visit feature forces it.
+- **Save format: JSON blob in localStorage under `fishtank.save.v1`.** Top-level `version` field (integer). Bump the version and write a migration function whenever the schema changes in a breaking way. No compression for MVP (saves will be small). No signing - single-player cheating is accepted.
 - **Game engine: Phaser 3.** Locked 2026-05-20. Reasons: (1) Scott already uses it on the worms project, so the learning curve is amortized; (2) batteries-included (scenes, input, audio, tweens, asset loader, animations, particles) saves weeks over assembling Pixi + tween + asset loader; (3) performance is not load-bearing - benchmarks show Phaser handles 10,000 sprites at 43 FPS and we will have ~50. Bundle size (~1.2MB) is the only real cost and acceptable for a hobby project. See [research/idle-game-tech-survey.md](../research/idle-game-tech-survey.md) for the data behind this.
 - **Language: TypeScript.** Locked 2026-05-20. Reasons: (1) save data schemas benefit enormously from types - schema migrations are the kind of code that silently breaks without compile-time checks; (2) Phaser 3 ships official TS types and the canonical starter template is TS-first; (3) Vite has zero-config TS support, so the setup cost is near-zero. Plain JS would be defensible for a smaller project but is a worse fit once we have multiple subsystems (sim, save, UI, render) talking to each other.
 - **Build tool: Vite.** Locked 2026-05-20. Reasons: (1) fast dev server with hot reload, near-instant startup; (2) zero-config TypeScript; (3) Phaser + TS + Vite starter templates exist and are well-maintained; (4) no real competitor at this scale (Webpack is dying, Parcel is less popular, esbuild is too low-level).
 - **Art tool: Aseprite.** Locked 2026-05-20. Reasons: (1) Scott already owns it from the worms project; (2) industry standard for pixel art - tutorials and references map directly; (3) exports spritesheets + JSON metadata in a format Phaser can consume natively.
+- **Hosting: `mccarrison.me/fish` via Cloudflare Pages.** Locked 2026-05-21. Same pattern as prior games Scott has hosted. Static build artifact, no server needed for MVP.
 
 ### Deferred
 
-- **Backend (if/when "visit my tank" ships):** undecided. Options: simple Node + SQLite, or piggyback on the existing brain EC2.
-- **Hosting:** undecided. Likely GitHub Pages or Cloudflare Pages for static MVP.
+- **Backend.** Deferred. Only relevant if/when a "visit my tank" read-only sharing feature ships in Phase 2. That feature is the only multiplayer idea we have discussed and we are not committing to it. If we do build it, options include a simple Node + SQLite service or piggybacking on the existing brain EC2.
 
 ## Consequences
 
