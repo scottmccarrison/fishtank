@@ -31,12 +31,14 @@ Important differences from AbyssRium by design:
 
 2. **Single currency: coins.** No vitality/gem split. Two-currency systems exist primarily to bridge earnable/purchasable, and we have no purchases.
 
-3. **Engagement hooks (for Phase 2 retention work, per the roadmap):**
+3. **Coins are the only progression axis. No Coralite / level meta-mechanic.** Biome unlocks are pure coin thresholds. AbyssRium uses a "Lonely Coralite" character that levels up by absorbing vitality and acts as the biome gate. We considered cloning this and chose not to - it adds a second progression mechanic and a new central game object. Single-axis (coins) keeps the model simple, reduces what a new player has to learn, and matches the "feed fish, get coins, buy fish" framing.
+
+4. **Engagement hooks (for Phase 2 retention work, per the roadmap):**
    - **Collection log / encyclopedia.** Visible "X of N discovered" counter. Fish unlock by hitting deterministic coin milestones (not RNG, not gacha).
    - **Biome unlocks** at major coin thresholds. Each biome changes the tank background art and unlocks a new fish set. Specific biome list and thresholds TBD - probably 3-4 for v1 (freshwater, reef, deep-sea, maybe kelp forest).
    - **Achievement nudges with modest bonuses** ("Own 5 fish": +5% earn rate; "Earn 10k coins offline": +5%). Multipliers stay small enough that achievements feel like seasoning, not the main meal.
 
-4. **One optional interaction in MVP: rearranging decorations.** Drag-and-drop the castle / plant / rock around the tank. Low-stakes, expressive, no failure state. This is the AbyssRium-equivalent of placing coral, scoped to our pixel-art constraints.
+5. **One optional interaction in MVP: rearranging decorations.** Drag-and-drop the castle / plant / rock around the tank. Low-stakes, expressive, no failure state. This is the AbyssRium-equivalent of placing coral, scoped to our pixel-art constraints.
 
 ### Out of scope, locked (reaffirming and extending ADR-0002)
 
@@ -45,7 +47,7 @@ Important differences from AbyssRium by design:
 - **Fish health / mood / illness.** Already excluded by ADR-0002, restated here for clarity.
 - **Prestige resets.** Common in idle games but disrespect player time. Biome unlocks give the same "new chapter" feeling without the reset.
 - **Daily-login mechanics of any kind.** Streaks, bonuses, missed-day penalties - all excluded.
-- **Hidden fish unlocked via quirky physical conditions** (AbyssRium's "tap with 5 fingers" / "tilt device" mechanic). Cute but undocumented and frustrating; we keep unlocks deterministic.
+- **Hidden / Easter-egg fish** of any kind for v1. AbyssRium has 50+ ("tap with 5 fingers," "play between midnight and 1am," "share a photo on Twitter"). The charming ones are tempting but complicate the coins-drive-progression focus, and the worst of them (notification bait, social-share gates) are flat-out predatory. Defer the charming subset to v2.
 
 ## Consequences
 
@@ -57,12 +59,22 @@ Important differences from AbyssRium by design:
 
 ## Open questions for later (not blocking)
 
-- **Pricing curve for fish** (linear vs exponential vs hyperbolic). Probably exponential per species, with each biome's species ~10x more expensive than the prior.
-- **Specific biome list and unlock thresholds.** Deferred to a Phase 2 design pass.
-- **Achievement catalog.** Deferred to a Phase 2 design pass.
-- **Whether and how to do AbyssRium-style "hidden fish"** with non-coin unlock conditions (e.g., "have 0 fish for 60 seconds"). Could work as a small Easter-egg layer; needs design.
+Numeric design - all deferred to a dedicated Phase 2 design pass. The [AbyssRium deep-dive](../research/abyssrium-mechanics-deep-dive.md) gives anchors to start from.
 
-These should get a follow-up research/design pass before Phase 2 implementation starts. The next AbyssRium-specific research dive should cover their actual biome cadence, fish-per-biome counts, and pricing curve shape so we have real numbers to anchor against.
+- **Pricing curve numbers.** Research suggests ~1.3-1.5x per fish within a biome, ~10-25x step between biomes. Need to pick specific values.
+- **Specific biome list and unlock thresholds.** Three biomes confirmed. Provisional themes from the research: Tide Pool / Open Reef / Abyss. Need to lock biome names, fish counts per biome (research suggested 12/10/8 front-loaded; the synthesis is internally inconsistent about totals - real number TBD), and the coin thresholds that unlock each.
+- **Achievement catalog.** Specific list, triggers, and bonuses.
+- **Time-to-completion target.** Research anchor is ~15-25 active hours total. Pick a target before balancing the curve.
+
+These get resolved before Phase 2 implementation begins.
+
+## Deferred to future state (v2+, not committed)
+
+Mechanics we explicitly explored, considered, and decided NOT to include in v1. Documented here so future-us doesn't relitigate without context.
+
+- **Tap-to-boost interaction.** AbyssRium still has a 1-vitality-per-tap baseline. We chose pure auto-collect to align with the "calm idle" feel. v2 could add an optional click bonus - a tap that grants a small instant boost or temporary multiplier, never a required interaction.
+- **Functional / boost decorations.** AbyssRium's decorations and corals raise vitality and fish cap. ADR-0002 locked cosmetic-only to keep the model simple. v2 could introduce a "premium decoration" tier that grants modest earn-rate boosts, scoped so the cosmetic tier remains viable.
+- **Hidden / Easter-egg fish.** Charming when done well (e.g., "have 0 fish for 60 seconds," "open the tank on a rainy day"). Skipped in v1 to keep progression single-axis. v2 could include 3-5 deterministic Easter-eggs.
 
 ## Notes
 
