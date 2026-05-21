@@ -1,6 +1,6 @@
 # ADR-0001: Tech stack
 
-**Status:** Proposed (some items locked, some leaning)
+**Status:** Accepted (deferred items noted separately)
 **Date:** 2026-05-20
 
 ## Context
@@ -15,12 +15,9 @@ We need to pick a stack before writing any code. The project is a single-player 
 - **Art style: 2D pixel art.** Cheap to produce, visually distinctive, hides "amateur" look better than 3D or vector. Mix of hand-drawn (starter fish, simple decor) and asset packs (exotic species, complex decor).
 - **MVP save state: localStorage.** No backend, no accounts, no cloud sync until the visit feature forces it.
 - **Game engine: Phaser 3.** Locked 2026-05-20. Reasons: (1) Scott already uses it on the worms project, so the learning curve is amortized; (2) batteries-included (scenes, input, audio, tweens, asset loader, animations, particles) saves weeks over assembling Pixi + tween + asset loader; (3) performance is not load-bearing - benchmarks show Phaser handles 10,000 sprites at 43 FPS and we will have ~50. Bundle size (~1.2MB) is the only real cost and acceptable for a hobby project. See [research/idle-game-tech-survey.md](../research/idle-game-tech-survey.md) for the data behind this.
-
-### Leaning (revisit before implementation)
-
-- **Language: TypeScript.** Reason: catches bugs at the boundary between systems (fish behavior, save state, UI). Worth the small extra setup cost. Open to plain JS if the boilerplate gets annoying.
-- **Build tool: Vite.** Reason: fast dev server, simple config, well-supported with Phaser + TS templates. No strong opinion, just the default.
-- **Art tool: Aseprite.** Reason: Scott already owns it for the worms project. Industry standard for pixel art.
+- **Language: TypeScript.** Locked 2026-05-20. Reasons: (1) save data schemas benefit enormously from types - schema migrations are the kind of code that silently breaks without compile-time checks; (2) Phaser 3 ships official TS types and the canonical starter template is TS-first; (3) Vite has zero-config TS support, so the setup cost is near-zero. Plain JS would be defensible for a smaller project but is a worse fit once we have multiple subsystems (sim, save, UI, render) talking to each other.
+- **Build tool: Vite.** Locked 2026-05-20. Reasons: (1) fast dev server with hot reload, near-instant startup; (2) zero-config TypeScript; (3) Phaser + TS + Vite starter templates exist and are well-maintained; (4) no real competitor at this scale (Webpack is dying, Parcel is less popular, esbuild is too low-level).
+- **Art tool: Aseprite.** Locked 2026-05-20. Reasons: (1) Scott already owns it from the worms project; (2) industry standard for pixel art - tutorials and references map directly; (3) exports spritesheets + JSON metadata in a format Phaser can consume natively.
 
 ### Deferred
 
@@ -35,4 +32,4 @@ We need to pick a stack before writing any code. The project is a single-player 
 
 ## Notes
 
-Update this ADR (don't delete) when any "Leaning" item gets locked or replaced.
+Update this ADR in place (don't delete) when items get replaced, reopened, or new ones added. Each locked item carries a date so we can see when each decision was finalized.
