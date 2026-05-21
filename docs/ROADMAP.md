@@ -23,11 +23,15 @@ The smallest version of the game that proves the loop is fun.
 
 ## Phase 2: Polish and retention
 
-Only after Phase 1 proves the loop is fun.
+Only after Phase 1 proves the loop is fun. Engagement hooks come from [ADR-0004](decisions/0004-engagement-loop.md): AbyssRium-style collection-driven progression, cleaned of microtransactions.
 
 - Sound design (ambient water, soft chimes on earn/buy)
 - Visual polish (lighting, animations, transitions)
-- One retention hook (TBD: limited-time fish? daily rare spawn? fish moods?). Pick ONE.
+- Retention hooks per ADR-0004:
+  - Collection log / encyclopedia with "X of N discovered" counter
+  - Biome unlocks at coin milestones (3-4 biomes for v1: freshwater, reef, deep-sea, maybe kelp forest)
+  - Achievement nudges with modest bonuses
+- Decoration drag-and-drop (rearranging castle/plants/rocks)
 - Settings: mute, reset save, export/import save JSON
 - Accessibility pass
 
