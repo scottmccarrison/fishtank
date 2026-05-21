@@ -10,7 +10,7 @@ export default {
     const prefix = env.PATH_PREFIX || '/fish';
 
     if (url.pathname === prefix) {
-      return Response.redirect(url.origin + prefix + '/', 301);
+      return Response.redirect(url.origin + prefix + '/' + url.search, 301);
     }
 
     let path = url.pathname;
