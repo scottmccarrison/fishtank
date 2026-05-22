@@ -21,3 +21,4 @@ Each ADR has:
 - [0002 - MVP scope and what we are not building](0002-mvp-scope.md)
 - [0003 - Simulation loop, tick rate, and offline progression](0003-sim-loop.md)
 - [0004 - Gameplay model and engagement loop](0004-engagement-loop.md)
+- [0005 - Numeric model for v1](0005-numeric-model.md)
