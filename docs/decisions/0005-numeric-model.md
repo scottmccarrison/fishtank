@@ -26,9 +26,11 @@ v1 ships **all three biomes** (Tide Pool, Open Reef, Abyss) with the full ~28-fi
 - **First fish cost:** 50 coins
 - **Cost ratio within biome:** 1.4x per fish (each fish costs 40% more than the previous)
 - **Biome step (cost):** 15x (first fish of new biome costs 15x the last fish of prior biome)
-- **Last Tide Pool fish:** ~715 coins
-- **Last Open Reef fish:** ~150K coins
-- **Last Abyss fish (the goal):** ~50M coins
+- **Last Tide Pool fish:** ~1033 coins (10 purchasable species, cost = 50 * 1.4^9)
+- **First Open Reef fish:** ~15500 (= 1033 * 15)
+- **Last Open Reef fish:** ~320K (= 15500 * 1.4^9)
+- **First Abyss fish:** ~4.8M (= 320K * 15)
+- **Last Abyss fish (the goal):** ~50M unchanged (locked goal)
 
 ### Earn-rate model
 
@@ -82,3 +84,5 @@ Defer the decision to implementation - whichever feels right when the shop UI is
 ## Notes
 
 The full simulation script is reproducible from the variants explored in chat. If we need to re-tune, the simplest path is: drop into Python, plug in new ratios, see where total-time lands, iterate.
+
+Amended 2026-05-22 during M1 implementation: original ~715 figure assumed 9 purchasable; we ship 10 purchasable with the starter pre-granted at save init.
