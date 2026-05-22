@@ -1,0 +1,36 @@
+/**
+ * Locked numeric model from ADR-0005 and sim parameters from ADR-0003.
+ * Tuning happens here; every consumer reads from this object.
+ */
+export const CONSTANTS = {
+  // --- Sim loop (ADR-0003) ---
+  /** Sim tick rate in Hz. */
+  SIM_TICK_HZ: 5,
+  /** Sim tick interval in ms. */
+  SIM_TICK_MS: 200,
+  /** Maximum offline time we will credit (24h). */
+  OFFLINE_CATCHUP_CAP_MS: 24 * 60 * 60 * 1000,
+
+  // --- Save (M2) ---
+  /** localStorage key for v1 save. */
+  SAVE_KEY: 'fishtank.save.v1',
+  /** Autosave cadence in ms. */
+  AUTOSAVE_INTERVAL_MS: 10000,
+
+  // --- Economy (ADR-0005) ---
+  /** Cost of the very first fish, in coins. */
+  FIRST_FISH_COST: 50,
+  /** Multiplicative cost step between sequential fish within a biome. */
+  COST_RATIO_IN_BIOME: 1.4,
+  /** Multiplicative cost step at biome transitions. */
+  BIOME_COST_STEP: 15,
+  /** Multiplicative earn-rate step between sequential fish within a biome. */
+  EARN_RATIO_IN_BIOME: 1.16,
+  /** Multiplicative earn-rate step at biome transitions. */
+  BIOME_EARN_STEP: 15,
+  /** Target payback time at purchase, in seconds. */
+  PAYBACK_SECONDS: 90,
+} as const;
+
+/** Type alias for the constants object - allows precise typing of consumers. */
+export type Constants = typeof CONSTANTS;
