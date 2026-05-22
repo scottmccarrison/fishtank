@@ -6,7 +6,8 @@ import { createInitialState } from './save/InitialState.js';
 import { startAutosave } from './save/Autosave.js';
 import { applyCatchup } from './sim/OfflineCatchup.js';
 import { registerVisibilityHandler } from './sim/VisibilityHandler.js';
-import type { SaveStateV1 } from './types/Save.js';
+import { startCoinEarn } from './sim/CoinEarn.js';
+import { getState, setState } from './state.js';
 
 // --- Load or initialize save state ---
 let saved = loadSave();
@@ -21,29 +22,24 @@ if (saved === null) {
 }
 
 // --- Apply offline catchup once on load ---
-// Note: visibilitychange does NOT fire on initial load - this is the only place
-// load-time catchup runs. The visibility handler covers subsequent hide/show transitions.
 const catchup = applyCatchup(saved, new Date());
-let gameState: SaveStateV1 = catchup.newState;
-writeSave(gameState);
+setState(catchup.newState);
+writeSave(getState());
 if (catchup.coinsEarned > 0 && import.meta.env.DEV) {
   console.log(
     `[catchup] +${catchup.coinsEarned.toFixed(1)} coins over ${(catchup.elapsedMs / 1000 / 60).toFixed(1)} min`,
   );
 }
 
-// --- Start sim loop + register handlers ---
+// --- Sim loop + handlers (state singleton already initialized; safe for scene to read) ---
 const simLoop = new SimLoop();
 
-const setGameState = (s: SaveStateV1) => {
-  gameState = s;
-};
-
-startAutosave(() => gameState, setGameState, simLoop);
+startCoinEarn(getState, setState, simLoop);
+startAutosave(getState, setState, simLoop);
 
 registerVisibilityHandler({
-  getState: () => gameState,
-  setState: setGameState,
+  getState,
+  setState,
   simLoop,
   onCatchup: ({ elapsedMs, coinsEarned }) => {
     if (coinsEarned > 0 && import.meta.env.DEV) {
@@ -56,7 +52,7 @@ registerVisibilityHandler({
 
 simLoop.start();
 
-// --- Phaser game (POC scene; M3 replaces this with save-driven rendering) ---
+// --- Phaser game (scene auto-starts; reads state via the singleton) ---
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
