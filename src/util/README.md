@@ -1,6 +1,8 @@
 Shared utilities.
 
-Pending implementations:
-- `formatCoins(n: number): string` - K/M/B/T formatter per ADR-0005. Lands in M3 alongside coin counter UI.
-- `uuid(): string` - UUID v4 for FishInstance.id / DecorationInstance.id. Lands in M2 alongside save schema work.
+- `uuid.ts` (M2.3): crypto.randomUUID wrapper.
+- `earnRate.ts` (M2.5): instanceEarnRate, computeTotalEarnRate (closed-form).
+
+Pending:
+- `formatCoins(n: number): string` - K/M/B/T formatter per ADR-0005. Lands in M3.
 - `lerp`, `clamp`, etc. - math helpers, added as needed.
