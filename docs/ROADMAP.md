@@ -1,50 +1,104 @@
 # Roadmap
 
-High-level phases. Specifics live in `docs/plans/<epic>.md` once each phase is being worked on.
+High-level phases and milestones. Specifics live in GitHub issues per milestone, and per-epic plans land in `docs/plans/<epic>.md` if any feature warrants a written plan.
 
-## Phase 0: Foundations (current)
+## Phase 0: Foundations - COMPLETE (2026-05-21)
 
-- Lock in tech stack ([ADR-0001](decisions/0001-tech-stack.md))
-- Lock in MVP scope ([ADR-0002](decisions/0002-mvp-scope.md))
-- Asset research: shortlist 2-3 fish/aquarium packs on itch.io
-- Tiny tech POC: blank Phaser 3 + TS + Vite page with one sprite moving on screen
+- 5 ADRs locked (tech stack, MVP scope, sim loop, engagement loop, numeric model)
+- 3 research docs saved (idle game tech, engagement, AbyssRium mechanics)
+- Asset choices locked (Pixel Gnome Fishing Pack + gradient backgrounds for v1)
+- POC deployed at `mccarrison.me/fish`
 
-## Phase 1: MVP single-player
+## Phase 1: v1 Implementation (current)
 
-The smallest version of the game that proves the loop is fun.
+Building the playable 3-biome fish tank game per [ADR-0005](decisions/0005-numeric-model.md). Broken into 7 milestones tracked via GitHub milestones. Total estimate: ~25-35 atomic issues.
 
-- Tank rendered, one fish sprite swimming with simple AI
-- Shop UI: buy more fish (3-5 species, varied price/earn rates)
-- Coin counter, earning timer per fish
-- localStorage save/load
-- Decorations (cosmetic): 5-10 items
-- Tank upgrades: 2-3 sizes
-- Bare-minimum visual polish: water tint, bubbles, soft background
+### M1: Foundation
 
-## Phase 2: Polish and retention
+Scaffolding for everything that follows. No gameplay yet.
 
-Only after Phase 1 proves the loop is fun. Engagement hooks come from [ADR-0004](decisions/0004-engagement-loop.md): AbyssRium-style collection-driven progression, cleaned of microtransactions.
+- Project structure refactor (`src/scenes/`, `src/sim/`, `src/save/`, `src/ui/`, `src/data/`)
+- Asset import (Pixel Gnome Fishing Pack into `public/assets/`)
+- TypeScript types and interfaces for fish, biomes, decorations, save state
+- Game constants module (pricing curve, biome thresholds, all the numbers from ADR-0005)
 
-- Sound design (ambient water, soft chimes on earn/buy)
-- Visual polish (lighting, animations, transitions)
-- Retention hooks per ADR-0004:
-  - Collection log / encyclopedia with "X of N discovered" counter
-  - Biome unlocks at coin milestones (3-4 biomes for v1: freshwater, reef, deep-sea, maybe kelp forest)
-  - Achievement nudges with modest bonuses
-- Decoration drag-and-drop (rearranging castle/plants/rocks)
-- Settings: mute, reset save, export/import save JSON
+### M2: Sim and Save
+
+The invisible engine. Must work correctly before any gameplay can be trusted.
+
+- 5Hz sim tick loop per [ADR-0003](decisions/0003-sim-loop.md)
+- Save schema v1 (JSON in localStorage under `fishtank.save.v1`, version field for migrations)
+- Save/load functions + autosave timer
+- Offline catchup math (capped at 24h)
+- Page Visibility API integration (pause sim on hidden, resume + catchup on visible)
+
+### M3: Core Scenes
+
+Visible game, sim hooked up, fish on screen.
+
+- Tank scene refactor (replace POC's single-fish demo)
+- Fish spawning from save state
+- Fish swim AI (idle drift + occasional darting per ADR-0002)
+- Coin counter UI with K/M/B formatter
+- Sprite import pipeline + sprite scaling per fish tier
+
+### M4: Shop and Economy
+
+The core game loop wired up.
+
+- Shop panel UI (browse + purchase)
+- Fish purchase flow (cost validation, save update, sprite spawn)
+- Earn-rate calculation per fish per ADR-0005
+- Coin display animation on earn (floating "+N" or similar)
+
+### M5: Biome System
+
+The macro-progression hook.
+
+- Biome data structure and registry
+- Coin-threshold unlock gates
+- Gradient backdrops per biome (Tide Pool / Open Reef / Abyss)
+- Biome transition moment (the unlock celebration)
+- Shop filtering by available biomes
+
+### M6: Decorations
+
+The optional interaction layer per [ADR-0004](decisions/0004-engagement-loop.md).
+
+- Decoration shop catalog (10 items from Pixel Gnome Misc folder)
+- Decoration purchase flow
+- Drag-and-drop placement on the tank
+- Decoration save/load (positions persisted)
+
+### M7: Polish and v1 Ship
+
+Last-mile work to be presentable.
+
+- Welcome-back toast showing offline earnings
+- First-run experience (free starter fish, helpful copy)
+- Settings panel: mute, reset save, export/import save JSON
+- v1 deploy verification end-to-end
+
+## Phase 2: Post-v1 polish and retention
+
+Only after v1 ships and we see what feels right. Engagement hooks from [ADR-0004](decisions/0004-engagement-loop.md) land here.
+
+- Sound design (ambient water loop, soft chimes on earn/buy)
+- Visual polish (lighting, animations, biome transition flourish)
+- Collection log / encyclopedia UI ("X of N discovered")
+- Achievement system with modest earn-rate multipliers
 - Accessibility pass
 
-## Phase 3: Sharing (the "visit my tank" feature)
+## Phase 3: Sharing (optional)
 
-Only if Phases 1-2 land well and someone actually wants to share their tank.
+Only if v1 lands well and there's appetite. Requires the first backend in the project.
 
 - Backend service to store tank snapshots
 - Shareable read-only URLs
 - Privacy considerations (no PII, opt-in publish)
-- Maybe: visitor "likes" or guest book (resist scope creep)
 
 ## Notes
 
 - Phases are not deadlined. This is a hobby project; ship when ready.
-- If Phase 1 is boring, stop. Don't pile on features to rescue a dull core loop.
+- If Phase 1 reveals the loop is boring, stop. Don't pile features on a dull core loop.
+- ADR-0005 explicitly defers tank-upgrade specifics to implementation time. Expect that question to resurface in M3 or M4.
