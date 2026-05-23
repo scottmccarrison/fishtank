@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { preloadFishSprites } from './SpriteLoader.js';
+import { preloadFishSprites, preloadDecorationSprites } from './SpriteLoader.js';
 import { FISH_SPECIES } from '../data/fish.js';
 import { FishAI } from '../sim/FishAI.js';
 import { createCoinCounter, type CoinCounter } from '../ui/CoinCounter.js';
@@ -7,6 +7,7 @@ import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
 import { createShopPanel, type ShopPanel } from '../ui/ShopPanel.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
 import { createBiomeTransition, type BiomeTransition } from '../ui/BiomeTransition.js';
+import { createDecorationManager, type DecorationManager } from './DecorationManager.js';
 import { getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 import { getState } from '../state.js';
 
@@ -24,6 +25,7 @@ export class TankScene extends Phaser.Scene {
   private shopPanel!: ShopPanel;
   private backdrop!: GradientBackdrop;
   private biomeTransition!: BiomeTransition;
+  private decorationManager!: DecorationManager;
 
   constructor() {
     super('TankScene');
@@ -31,6 +33,7 @@ export class TankScene extends Phaser.Scene {
 
   preload(): void {
     preloadFishSprites(this);
+    preloadDecorationSprites(this);
   }
 
   create(): void {
@@ -40,6 +43,17 @@ export class TankScene extends Phaser.Scene {
     this.coinCounter = createCoinCounter(this, getState);
     this.coinFloater = createCoinFloater(this);
     this.shopPanel = createShopPanel(this, getState);
+
+    // DecorationManager: created AFTER shopPanel so its isInputBlocked closure
+    // can reference shopPanel.isOpen(). Gating drag prevents click-through
+    // when the shop is open above a decoration (Phaser hit-tests per-object,
+    // not by depth). The isOpen() approach catches both the SHOP-button toggle
+    // AND the panel's internal X-close.
+    this.decorationManager = createDecorationManager(
+      this,
+      getState,
+      () => this.shopPanel.isOpen(),
+    );
 
     this.biomeTransition = createBiomeTransition(this, getState, (biome) => {
       this.backdrop.transitionTo(biome);
@@ -80,6 +94,7 @@ export class TankScene extends Phaser.Scene {
       }
     }
 
+    this.decorationManager.update();
     this.biomeTransition.update();
     this.coinFloater.update(fishes, delta);
     this.coinCounter.update();
