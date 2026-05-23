@@ -3,26 +3,22 @@ import { preloadFishSprites } from './SpriteLoader.js';
 import { FISH_SPECIES } from '../data/fish.js';
 import { FishAI } from '../sim/FishAI.js';
 import { createCoinCounter, type CoinCounter } from '../ui/CoinCounter.js';
+import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
+import { createShopPanel, type ShopPanel } from '../ui/ShopPanel.js';
 import { getState } from '../state.js';
 
 const SPECIES_BY_ID = new Map(FISH_SPECIES.map((s) => [s.id, s]));
 
 const TANK_WIDTH = 800;
 const TANK_HEIGHT = 600;
-/** Pixel-art sprites are 16-32 px native; upscale 3x for visibility. */
 const RENDER_SCALE_MULTIPLIER = 3;
 
-/**
- * Renders fish from save state. State is read via the module singleton (src/state.ts)
- * so no init data is needed - the scene works correctly even when Phaser auto-starts it.
- *
- * FishAI runs in update() at render frequency (~60Hz) for smooth motion. Sim earning
- * and autosave run via SimLoop (5Hz, registered in main.ts).
- */
 export class TankScene extends Phaser.Scene {
   private sprites = new Map<string, Phaser.GameObjects.Image>();
   private fishAI = new FishAI({ tankWidth: TANK_WIDTH, tankHeight: TANK_HEIGHT });
   private coinCounter!: CoinCounter;
+  private coinFloater!: CoinFloater;
+  private shopPanel!: ShopPanel;
 
   constructor() {
     super('TankScene');
@@ -34,6 +30,23 @@ export class TankScene extends Phaser.Scene {
 
   create(): void {
     this.coinCounter = createCoinCounter(this, getState);
+    this.coinFloater = createCoinFloater(this);
+    this.shopPanel = createShopPanel(this, getState);
+
+    // Shop button top-right
+    const shopBtn = this.add.text(TANK_WIDTH - 80, 14, 'SHOP', {
+      fontSize: '20px',
+      color: '#ffffff',
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: 3,
+      backgroundColor: '#1a3a6b',
+      padding: { x: 10, y: 4 },
+    });
+    shopBtn.setDepth(100);
+    shopBtn.setInteractive({ useHandCursor: true });
+    shopBtn.on('pointerdown', () => this.shopPanel.toggle());
+
     for (const fish of getState().fishInstances) {
       this.spawnSprite(fish);
     }
@@ -56,7 +69,9 @@ export class TankScene extends Phaser.Scene {
       }
     }
 
+    this.coinFloater.update(fishes, delta);
     this.coinCounter.update();
+    this.shopPanel.update();
   }
 
   private spawnSprite(fish: { id: string; speciesId: string; x: number; y: number; direction: 1 | -1 }): void {
