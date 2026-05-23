@@ -7,6 +7,7 @@ import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
 import { createShopPanel, type ShopPanel } from '../ui/ShopPanel.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
 import { createBiomeTransition, type BiomeTransition } from '../ui/BiomeTransition.js';
+import { createTankFloor } from '../ui/TankFloor.js';
 import { createCatchupToast, type CatchupToast } from '../ui/CatchupToast.js';
 import { createWelcomeModal, type WelcomeModal } from '../ui/WelcomeModal.js';
 import { createSettingsPanel, type SettingsPanel } from '../ui/SettingsPanel.js';
@@ -46,6 +47,9 @@ export class TankScene extends Phaser.Scene {
   create(): void {
     const initialBiome = getHighestUnlockedBiome(getState().lifetimeEarned);
     this.backdrop = createGradientBackdrop(this, initialBiome);
+    // Sandy floor + pebbles. Discarded reference - Phaser tears down the
+    // graphics with the scene; no per-frame interaction needed.
+    createTankFloor(this);
 
     this.coinCounter = createCoinCounter(this, getState);
     this.coinFloater = createCoinFloater(this);
