@@ -16,12 +16,18 @@ const TANK_HEIGHT = 600;
 const MARGIN_TOP = 20;
 const MARGIN_SIDE = 20;
 /**
- * Bottom margin = floor height - a small overlap so decorations visually
- * rest ON the sand instead of floating above it. The 10px overlap means
- * a typical decoration sprite (24-48px tall at scale 3) ends up half-buried,
- * looking planted rather than hovering.
+ * Bottom margin tuned so a typical decoration's bottom edge sits NEAR the top
+ * of the sandy floor (TANK_FLOOR_HEIGHT). The previous overlap value buried
+ * tall sprites (e.g. seaweed) almost entirely; this version puts the average
+ * sprite's bottom edge ~1-2px above the sand line and lightly roots taller
+ * sprites without burying them.
+ *
+ * Math: floor top = TANK_HEIGHT - TANK_FLOOR_HEIGHT (= 540 with current values).
+ * Bottom y clamp = TANK_HEIGHT - MARGIN_BOTTOM = 515 when MARGIN_BOTTOM = 85.
+ * A 48px-tall sprite at center y=515 has its bottom at y=539 (1px above sand).
+ * A 96px-tall sprite at center y=515 has its bottom at y=563 (~24% buried).
  */
-const MARGIN_BOTTOM = TANK_FLOOR_HEIGHT - 10;
+const MARGIN_BOTTOM = TANK_FLOOR_HEIGHT + 25;
 
 /**
  * Clamp a position to within tank bounds. Bottom margin accounts for the
@@ -53,6 +59,12 @@ export function createDecorationManager(
   const sprites = new Map<string, Phaser.GameObjects.Image>();
 
   function spawn(instance: DecorationInstance): void {
+    // Re-clamp on spawn so decorations saved under an older bounds (e.g.
+    // pre-floor-bump positions buried in the sand) drift up to the current
+    // bounds on next load. Autosave persists the corrected positions.
+    const clamped = clampToTank(instance.x, instance.y);
+    instance.x = clamped.x;
+    instance.y = clamped.y;
     const sprite = scene.add.image(instance.x, instance.y, instance.speciesId);
     sprite.setScale(3); // match fish render scale multiplier (M3)
     sprite.setDepth(DECORATION_DEPTH);

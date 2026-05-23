@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { clampToTank } from './DecorationManager.js';
 
-// Bottom clamp leaves room for the TankFloor (60px tall, with 10px overlap so
-// decorations look planted): max y = 600 - (60 - 10) = 550.
-const BOTTOM_CLAMP = 550;
+// Bottom clamp tuned so a typical decoration's bottom sits near the top of
+// the sand: max y = 600 - (60 + 25) = 515.
+const BOTTOM_CLAMP = 515;
 
 describe('clampToTank', () => {
   it('passes through positions within bounds', () => {
