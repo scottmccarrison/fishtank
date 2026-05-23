@@ -113,6 +113,14 @@ export function createSettingsPanel(scene: Phaser.Scene, simLoop: SimLoop): Sett
 
   const container = scene.add.container(cx, cy).setDepth(PANEL_DEPTH).setVisible(false);
 
+  // Full-viewport dim layer to absorb clicks outside the panel - including
+  // the SHOP/SETTINGS buttons sitting in the tank corners. Phaser hit-tests
+  // per-object regardless of z-order; a panel-sized bg alone doesn't block
+  // input on objects beside it.
+  const screenDim = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x000000, 0.5);
+  screenDim.setInteractive();
+  container.add(screenDim);
+
   const bg = scene.add.rectangle(0, 0, PANEL_W, PANEL_H, 0x0a1a3a, 0.92);
   bg.setStrokeStyle(2, 0xffffff, 0.4);
   bg.setInteractive();
