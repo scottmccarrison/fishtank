@@ -4,6 +4,8 @@ export interface DecorationSpecies {
   id: string;
   /** Display name. */
   name: string;
+  /** Cost in coins. */
+  cost: number;
   /** Path relative to public/, e.g. "assets/decorations/Coral.png". */
   assetPath: string;
 }

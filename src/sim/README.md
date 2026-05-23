@@ -6,3 +6,4 @@ Simulation tick loop, AI, and offline catchup.
 - `FishAI` (M3.3): per-fish swim AI (idle drift + occasional darting).
 - `CoinEarn` (M3.4): tick handler that adds totalEarnRate * dt to coinBalance.
 - `PurchaseFish` (M4.2): validates balance, deducts cost, appends FishInstance.
+- `PurchaseDecoration` (M6.2): validates balance, deducts cost, appends DecorationInstance.
