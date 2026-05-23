@@ -3,33 +3,50 @@ import type { SaveStateV1 } from '../types/Save.js';
 import type { Biome } from '../types/Biome.js';
 import { BIOMES } from '../data/biomes.js';
 import { FISH_SPECIES } from '../data/fish.js';
+import { DECORATIONS } from '../data/decorations.js';
 import { fishCost } from '../util/fishCost.js';
 import { formatCoins } from '../util/formatCoins.js';
 import { purchaseFish } from '../sim/PurchaseFish.js';
+import { purchaseDecoration } from '../sim/PurchaseDecoration.js';
 import { isBiomeUnlocked, getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 
 export interface ShopPanel {
   toggle(): void;
   update(): void;
   destroy(): void;
+  /** True if the panel is currently visible. Used by TankScene to gate decoration drag. */
+  isOpen(): boolean;
 }
 
 const PANEL_W = 600;
 const PANEL_H = 520;
 const PANEL_DEPTH = 200;
 const TAB_H = 36;
+const DECORATIONS_TAB_ID = '__decorations__';
+
+interface RowSpec {
+  id: string;
+  name: string;
+  cost: number;
+  textureKey: string;
+  iconScale: number;
+}
 
 interface Row {
   buyText: Phaser.GameObjects.Text;
-  species: (typeof FISH_SPECIES)[number];
+  costText: Phaser.GameObjects.Text;
+  spec: RowSpec;
 }
 
-interface BiomeUI {
-  biome: Biome;
+interface TabUI {
+  tabId: string;
+  label: string;
   tab: Phaser.GameObjects.Text;
   grid: Phaser.GameObjects.Container;
   rows: Row[];
   lastAffordable: Map<string, boolean | null>;
+  alwaysUnlocked: boolean;
+  biome: Biome | null;
 }
 
 export function createShopPanel(
@@ -75,51 +92,79 @@ export function createShopPanel(
   const cols = 2;
   const rowH = 70;
   const colW = (PANEL_W - 40) / cols;
-  const tabSpacing = PANEL_W / BIOMES.length;
+
+  const totalTabs = BIOMES.length + 1;
+  const tabSpacing = PANEL_W / totalTabs;
   const tabStart = -PANEL_W / 2 + tabSpacing / 2;
 
-  let activeBiomeId = getHighestUnlockedBiome(getState().lifetimeEarned).id;
+  let activeTabId = getHighestUnlockedBiome(getState().lifetimeEarned).id;
 
-  const biomeUIs: BiomeUI[] = BIOMES.map((biome, biomeIdx) => {
+  function specsForBiome(biome: Biome): RowSpec[] {
+    return FISH_SPECIES.filter((s) => s.biomeId === biome.id).map((s) => ({
+      id: s.id,
+      name: s.name,
+      cost: fishCost(s),
+      textureKey: s.id,
+      iconScale: s.scale * 1.3,
+    }));
+  }
+
+  function specsForDecorations(): RowSpec[] {
+    return DECORATIONS.map((d) => ({
+      id: d.id,
+      name: d.name,
+      cost: d.cost,
+      textureKey: d.id,
+      iconScale: 1.6,
+    }));
+  }
+
+  function buildTab(
+    tabId: string,
+    label: string,
+    tabIdx: number,
+    specs: RowSpec[],
+    onBuy: (id: string) => void,
+    alwaysUnlocked: boolean,
+    biome: Biome | null,
+  ): TabUI {
     const tab = scene.add
-      .text(tabStart + biomeIdx * tabSpacing, tabsY, biome.name, {
-        fontSize: '14px',
+      .text(tabStart + tabIdx * tabSpacing, tabsY, label, {
+        fontSize: '13px',
         color: '#ffffff',
         fontFamily: 'monospace',
         backgroundColor: '#222',
-        padding: { x: 10, y: 6 },
+        padding: { x: 8, y: 6 },
       })
       .setOrigin(0.5, 0)
       .setInteractive({ useHandCursor: true });
     tab.on('pointerdown', () => {
-      if (!isBiomeUnlocked(biome.id, getState().lifetimeEarned)) return;
-      setActiveBiome(biome.id);
+      if (!alwaysUnlocked && biome && !isBiomeUnlocked(biome.id, getState().lifetimeEarned)) return;
+      setActiveTab(tabId);
     });
     container.add(tab);
 
     const grid = scene.add.container(0, 0);
     container.add(grid);
 
-    const speciesInBiome = FISH_SPECIES.filter((s) => s.biomeId === biome.id);
-    const rows: Row[] = speciesInBiome.map((species, idx) => {
+    const rows: Row[] = specs.map((spec, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       const x = -PANEL_W / 2 + 20 + col * colW + colW / 2;
       const y = gridStartY + row * rowH + rowH / 2;
 
-      const icon = scene.add.image(x - colW / 2 + 24, y, species.id);
-      icon.setScale(species.scale * 1.3);
+      const icon = scene.add.image(x - colW / 2 + 24, y, spec.textureKey);
+      icon.setScale(spec.iconScale);
       grid.add(icon);
 
-      const name = scene.add.text(x - colW / 2 + 50, y - 16, species.name, {
+      const name = scene.add.text(x - colW / 2 + 50, y - 16, spec.name, {
         fontSize: '13px',
         color: '#ffffff',
         fontFamily: 'monospace',
       });
       grid.add(name);
 
-      const cost = fishCost(species);
-      const costText = scene.add.text(x - colW / 2 + 50, y + 2, `${formatCoins(cost)} c`, {
+      const costText = scene.add.text(x - colW / 2 + 50, y + 2, `${formatCoins(spec.cost)} c`, {
         fontSize: '11px',
         color: '#ffe066',
         fontFamily: 'monospace',
@@ -136,31 +181,58 @@ export function createShopPanel(
         })
         .setInteractive({ useHandCursor: true });
       buyText.on('pointerdown', () => {
-        // Guard against click-through on hidden grids: Phaser's container
-        // setVisible(false) does NOT disable child input handlers.
-        if (biome.id !== activeBiomeId) return;
-        const result = purchaseFish(species.id);
-        if (!result.success && import.meta.env.DEV) {
-          console.log('[shop] purchase failed:', result.reason);
-        }
+        if (tabId !== activeTabId) return;
+        onBuy(spec.id);
       });
       grid.add(buyText);
 
-      return { buyText, species };
+      return { buyText, costText, spec };
     });
 
     const lastAffordable = new Map<string, boolean | null>();
-    for (const r of rows) lastAffordable.set(r.species.id, null);
+    for (const r of rows) lastAffordable.set(r.spec.id, null);
 
-    return { biome, tab, grid, rows, lastAffordable };
+    return { tabId, label, tab, grid, rows, lastAffordable, alwaysUnlocked, biome };
+  }
+
+  const tabs: TabUI[] = [];
+  BIOMES.forEach((biome, idx) => {
+    tabs.push(
+      buildTab(
+        biome.id,
+        biome.name,
+        idx,
+        specsForBiome(biome),
+        (id) => {
+          const r = purchaseFish(id);
+          if (!r.success && import.meta.env.DEV) console.log('[shop] fish buy failed:', r.reason);
+        },
+        false,
+        biome,
+      ),
+    );
   });
+  tabs.push(
+    buildTab(
+      DECORATIONS_TAB_ID,
+      'Decorations',
+      BIOMES.length,
+      specsForDecorations(),
+      (id) => {
+        const r = purchaseDecoration(id);
+        if (!r.success && import.meta.env.DEV) console.log('[shop] deco buy failed:', r.reason);
+      },
+      true,
+      null,
+    ),
+  );
 
-  function setActiveBiome(biomeId: string): void {
-    activeBiomeId = biomeId;
-    for (const ui of biomeUIs) {
-      ui.grid.setVisible(ui.biome.id === biomeId);
-      if (ui.biome.id === biomeId) {
-        for (const r of ui.rows) ui.lastAffordable.set(r.species.id, null);
+  function setActiveTab(tabId: string): void {
+    activeTabId = tabId;
+    for (const ui of tabs) {
+      ui.grid.setVisible(ui.tabId === tabId);
+      if (ui.tabId === tabId) {
+        for (const r of ui.rows) ui.lastAffordable.set(r.spec.id, null);
       }
     }
     refreshTabs();
@@ -168,9 +240,9 @@ export function createShopPanel(
 
   function refreshTabs(): void {
     const lifetime = getState().lifetimeEarned;
-    for (const ui of biomeUIs) {
-      const unlocked = isBiomeUnlocked(ui.biome.id, lifetime);
-      const active = ui.biome.id === activeBiomeId;
+    for (const ui of tabs) {
+      const unlocked = ui.alwaysUnlocked || (ui.biome ? isBiomeUnlocked(ui.biome.id, lifetime) : false);
+      const active = ui.tabId === activeTabId;
       if (!unlocked) {
         ui.tab.setColor('#666666');
         ui.tab.setBackgroundColor('#1a1a1a');
@@ -184,15 +256,14 @@ export function createShopPanel(
     }
   }
 
-  function refreshActiveGridAffordability(): void {
-    const active = biomeUIs.find((u) => u.biome.id === activeBiomeId);
+  function refreshActiveAffordability(): void {
+    const active = tabs.find((u) => u.tabId === activeTabId);
     if (!active) return;
     const balance = getState().coinBalance;
     for (const row of active.rows) {
-      const cost = fishCost(row.species);
-      const canAfford = balance >= cost;
-      if (active.lastAffordable.get(row.species.id) === canAfford) continue;
-      active.lastAffordable.set(row.species.id, canAfford);
+      const canAfford = balance >= row.spec.cost;
+      if (active.lastAffordable.get(row.spec.id) === canAfford) continue;
+      active.lastAffordable.set(row.spec.id, canAfford);
       if (canAfford) {
         row.buyText.setColor('#ffffff');
         row.buyText.setBackgroundColor('#2e7d32');
@@ -203,30 +274,38 @@ export function createShopPanel(
     }
   }
 
-  setActiveBiome(activeBiomeId);
-  refreshActiveGridAffordability();
+  setActiveTab(activeTabId);
+  refreshActiveAffordability();
 
   return {
     toggle() {
       container.setVisible(!container.visible);
       if (container.visible) {
-        const top = getHighestUnlockedBiome(getState().lifetimeEarned).id;
-        if (!isBiomeUnlocked(activeBiomeId, getState().lifetimeEarned)) {
-          setActiveBiome(top);
+        const activeUI = tabs.find((u) => u.tabId === activeTabId);
+        if (
+          activeUI &&
+          !activeUI.alwaysUnlocked &&
+          activeUI.biome &&
+          !isBiomeUnlocked(activeUI.biome.id, getState().lifetimeEarned)
+        ) {
+          setActiveTab(getHighestUnlockedBiome(getState().lifetimeEarned).id);
         } else {
           refreshTabs();
         }
-        refreshActiveGridAffordability();
+        refreshActiveAffordability();
       }
     },
     update() {
       if (container.visible) {
         refreshTabs();
-        refreshActiveGridAffordability();
+        refreshActiveAffordability();
       }
     },
     destroy() {
       container.destroy();
+    },
+    isOpen() {
+      return container.visible;
     },
   };
 }
