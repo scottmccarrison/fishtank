@@ -9,6 +9,10 @@ import { registerVisibilityHandler } from './sim/VisibilityHandler.js';
 import { startCoinEarn } from './sim/CoinEarn.js';
 import { getState, setState } from './state.js';
 import { setFirstRun, setPendingCatchup, setSimLoop } from './sessionState.js';
+import { installOrientationLock } from './orientationLock.js';
+
+// --- Orientation lock overlay (DOM, fires before Phaser starts) ---
+installOrientationLock();
 
 // --- Load or initialize save state ---
 let saved = loadSave();
