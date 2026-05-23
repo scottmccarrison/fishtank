@@ -7,9 +7,13 @@ import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
 import { createShopPanel, type ShopPanel } from '../ui/ShopPanel.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
 import { createBiomeTransition, type BiomeTransition } from '../ui/BiomeTransition.js';
+import { createCatchupToast, type CatchupToast } from '../ui/CatchupToast.js';
+import { createWelcomeModal, type WelcomeModal } from '../ui/WelcomeModal.js';
+import { createSettingsPanel, type SettingsPanel } from '../ui/SettingsPanel.js';
 import { createDecorationManager, type DecorationManager } from './DecorationManager.js';
 import { getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 import { getState } from '../state.js';
+import { isFirstRun, clearFirstRun, consumePendingCatchup, getSimLoop } from '../sessionState.js';
 
 const SPECIES_BY_ID = new Map(FISH_SPECIES.map((s) => [s.id, s]));
 
@@ -26,6 +30,9 @@ export class TankScene extends Phaser.Scene {
   private backdrop!: GradientBackdrop;
   private biomeTransition!: BiomeTransition;
   private decorationManager!: DecorationManager;
+  private catchupToast!: CatchupToast;
+  private welcomeModal!: WelcomeModal;
+  private settingsPanel!: SettingsPanel;
 
   constructor() {
     super('TankScene');
@@ -43,16 +50,14 @@ export class TankScene extends Phaser.Scene {
     this.coinCounter = createCoinCounter(this, getState);
     this.coinFloater = createCoinFloater(this);
     this.shopPanel = createShopPanel(this, getState);
+    this.settingsPanel = createSettingsPanel(this, getSimLoop());
+    this.catchupToast = createCatchupToast(this);
+    this.welcomeModal = createWelcomeModal(this);
 
-    // DecorationManager: created AFTER shopPanel so its isInputBlocked closure
-    // can reference shopPanel.isOpen(). Gating drag prevents click-through
-    // when the shop is open above a decoration (Phaser hit-tests per-object,
-    // not by depth). The isOpen() approach catches both the SHOP-button toggle
-    // AND the panel's internal X-close.
     this.decorationManager = createDecorationManager(
       this,
       getState,
-      () => this.shopPanel.isOpen(),
+      () => this.shopPanel.isOpen() || this.settingsPanel.isOpen(),
     );
 
     this.biomeTransition = createBiomeTransition(this, getState, (biome) => {
@@ -68,12 +73,28 @@ export class TankScene extends Phaser.Scene {
       backgroundColor: '#1a3a6b',
       padding: { x: 10, y: 4 },
     });
-    shopBtn.setDepth(100);
-    shopBtn.setInteractive({ useHandCursor: true });
+    shopBtn.setDepth(100).setInteractive({ useHandCursor: true });
     shopBtn.on('pointerdown', () => this.shopPanel.toggle());
+
+    const settingsBtn = this.add.text(TANK_WIDTH - 110, 52, 'SETTINGS', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: 3,
+      backgroundColor: '#3a3a5b',
+      padding: { x: 10, y: 4 },
+    });
+    settingsBtn.setDepth(100).setInteractive({ useHandCursor: true });
+    settingsBtn.on('pointerdown', () => this.settingsPanel.toggle());
 
     for (const fish of getState().fishInstances) {
       this.spawnSprite(fish);
+    }
+
+    if (isFirstRun()) {
+      this.welcomeModal.show();
+      clearFirstRun();
     }
   }
 
@@ -93,6 +114,9 @@ export class TankScene extends Phaser.Scene {
         sprite.setFlipX(fish.direction === -1);
       }
     }
+
+    const pending = consumePendingCatchup();
+    if (pending) this.catchupToast.show(pending);
 
     this.decorationManager.update();
     this.biomeTransition.update();
