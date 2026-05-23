@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import type { DecorationInstance } from '../types/Decoration.js';
 import type { SaveStateV1 } from '../types/Save.js';
+import { TANK_FLOOR_HEIGHT } from '../ui/TankFloor.js';
 
 export interface DecorationManager {
   /** Called every frame; spawns sprites for newly-added instances. */
@@ -12,16 +13,24 @@ export interface DecorationManager {
 const DECORATION_DEPTH = -5; // above backdrop (-100), below fish (0)
 const TANK_WIDTH = 800;
 const TANK_HEIGHT = 600;
-const MARGIN = 20;
+const MARGIN_TOP = 20;
+const MARGIN_SIDE = 20;
+/**
+ * Bottom margin = floor height - a small overlap so decorations visually
+ * rest ON the sand instead of floating above it. The 10px overlap means
+ * a typical decoration sprite (24-48px tall at scale 3) ends up half-buried,
+ * looking planted rather than hovering.
+ */
+const MARGIN_BOTTOM = TANK_FLOOR_HEIGHT - 10;
 
 /**
- * Clamp a position to within tank bounds (with margin so sprites don't clip edges).
- * Exposed for testing.
+ * Clamp a position to within tank bounds. Bottom margin accounts for the
+ * sandy floor (TankFloor) so decorations rest on top of it. Exposed for testing.
  */
 export function clampToTank(x: number, y: number): { x: number; y: number } {
   return {
-    x: Math.max(MARGIN, Math.min(TANK_WIDTH - MARGIN, x)),
-    y: Math.max(MARGIN, Math.min(TANK_HEIGHT - MARGIN, y)),
+    x: Math.max(MARGIN_SIDE, Math.min(TANK_WIDTH - MARGIN_SIDE, x)),
+    y: Math.max(MARGIN_TOP, Math.min(TANK_HEIGHT - MARGIN_BOTTOM, y)),
   };
 }
 
