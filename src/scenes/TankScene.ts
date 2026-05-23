@@ -5,6 +5,9 @@ import { FishAI } from '../sim/FishAI.js';
 import { createCoinCounter, type CoinCounter } from '../ui/CoinCounter.js';
 import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
 import { createShopPanel, type ShopPanel } from '../ui/ShopPanel.js';
+import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
+import { createBiomeTransition, type BiomeTransition } from '../ui/BiomeTransition.js';
+import { getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 import { getState } from '../state.js';
 
 const SPECIES_BY_ID = new Map(FISH_SPECIES.map((s) => [s.id, s]));
@@ -19,6 +22,8 @@ export class TankScene extends Phaser.Scene {
   private coinCounter!: CoinCounter;
   private coinFloater!: CoinFloater;
   private shopPanel!: ShopPanel;
+  private backdrop!: GradientBackdrop;
+  private biomeTransition!: BiomeTransition;
 
   constructor() {
     super('TankScene');
@@ -29,11 +34,17 @@ export class TankScene extends Phaser.Scene {
   }
 
   create(): void {
+    const initialBiome = getHighestUnlockedBiome(getState().lifetimeEarned);
+    this.backdrop = createGradientBackdrop(this, initialBiome);
+
     this.coinCounter = createCoinCounter(this, getState);
     this.coinFloater = createCoinFloater(this);
     this.shopPanel = createShopPanel(this, getState);
 
-    // Shop button top-right
+    this.biomeTransition = createBiomeTransition(this, getState, (biome) => {
+      this.backdrop.transitionTo(biome);
+    });
+
     const shopBtn = this.add.text(TANK_WIDTH - 80, 14, 'SHOP', {
       fontSize: '20px',
       color: '#ffffff',
@@ -69,6 +80,7 @@ export class TankScene extends Phaser.Scene {
       }
     }
 
+    this.biomeTransition.update();
     this.coinFloater.update(fishes, delta);
     this.coinCounter.update();
     this.shopPanel.update();
