@@ -5,8 +5,8 @@ UI components.
 - `ShopPanel.ts` (M4.3, M5.4, M6.5): modal shop with biome + decoration tabs.
 - `GradientBackdrop.ts` (M5.2): per-biome gradient background with crossfade.
 - `BiomeTransition.ts` (M5.3): detects threshold crossings and shows celebration text.
+- `CatchupToast.ts` (M7.1): "Welcome back! +N coins" toast on offline return.
+- `WelcomeModal.ts` (M7.2): first-run greeting modal.
+- `SettingsPanel.ts` (M7.3): reset / export / import save controls.
 
-Pending (M7):
-- Settings panel
-- Welcome-back toast
-- Polish + accessibility pass
+(v1 feature-complete - Phase 2 will add sound, achievements, collection log.)
