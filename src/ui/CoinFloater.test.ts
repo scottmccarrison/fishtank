@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type Phaser from 'phaser';
 import { createCoinFloater } from './CoinFloater.js';
-import type { FishInstance } from '../types/Fish.js';
+import type { DisplayFish } from '../types/Fish.js';
 
-const makeFish = (id: string, speciesId = 'goldfish'): FishInstance => ({
-  id,
+const makeFish = (speciesId = 'goldfish'): DisplayFish => ({
   speciesId,
   x: 100,
   y: 100,
   direction: 1,
-  ownedAt: '2026-05-22T12:00:00.000Z',
 });
 
 function makeMockScene() {
@@ -52,7 +50,7 @@ describe('CoinFloater', () => {
   it('spawns a floater when a fish accumulates one whole coin', () => {
     const { scene, spawned } = makeMockScene();
     const floater = createCoinFloater(scene as unknown as Phaser.Scene);
-    const fish = makeFish('a');
+    const fish = makeFish();
     floater.update([fish], 2000);
     expect(spawned).toHaveLength(1);
     expect(spawned[0]!.text).toBe('+1');
@@ -61,7 +59,7 @@ describe('CoinFloater', () => {
   it('does not spawn until accumulator reaches 1', () => {
     const { scene, spawned } = makeMockScene();
     const floater = createCoinFloater(scene as unknown as Phaser.Scene);
-    const fish = makeFish('a');
+    const fish = makeFish();
     floater.update([fish], 500);
     expect(spawned).toHaveLength(0);
   });
@@ -69,7 +67,7 @@ describe('CoinFloater', () => {
   it('clears accumulator state when fish disappears from instances', () => {
     const { scene, spawned } = makeMockScene();
     const floater = createCoinFloater(scene as unknown as Phaser.Scene);
-    const fish = makeFish('a');
+    const fish = makeFish();
     floater.update([fish], 500);
     floater.update([], 500);
     floater.update([fish], 2000);
@@ -80,7 +78,7 @@ describe('CoinFloater', () => {
   it('handles unknown speciesId gracefully (no spawn)', () => {
     const { scene, spawned } = makeMockScene();
     const floater = createCoinFloater(scene as unknown as Phaser.Scene);
-    const fish = makeFish('a', 'mystery-fish');
+    const fish = makeFish('mystery-fish');
     floater.update([fish], 5000);
     expect(spawned).toHaveLength(0);
   });

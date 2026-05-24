@@ -5,7 +5,7 @@ import { flushSave } from '../save/Autosave.js';
 import { createInitialState } from '../save/InitialState.js';
 import { getState } from '../state.js';
 import type { SimLoop } from '../sim/SimLoop.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 
 export interface SettingsPanel {
   toggle(): void;
@@ -51,21 +51,23 @@ function pickFile(accept: string): Promise<File | null> {
 
 /**
  * Minimal shape validation beyond Serializer's version check. Catches obviously
- * broken imports (corrupted arrays, NaN balances) before they crash the game.
+ * broken imports (corrupted balances, malformed tanks) before they crash the game.
+ * Validates the V2 shape: version 2, finite balances, tanks object with valid entries.
  */
-function isPlausibleSaveState(s: SaveStateV1): boolean {
-  if (typeof s.lastSavedAt !== 'string') return false;
+function isPlausibleSaveState(s: SaveStateV2): boolean {
+  if (s.version !== 2) return false;
   if (!Number.isFinite(s.coinBalance)) return false;
   if (!Number.isFinite(s.lifetimeEarned)) return false;
-  if (!Array.isArray(s.fishInstances)) return false;
-  if (!Array.isArray(s.decorationInstances)) return false;
-  for (const f of s.fishInstances) {
-    if (!f || typeof f.id !== 'string' || typeof f.speciesId !== 'string') return false;
-    if (!Number.isFinite(f.x) || !Number.isFinite(f.y)) return false;
-  }
-  for (const d of s.decorationInstances) {
-    if (!d || typeof d.id !== 'string' || typeof d.speciesId !== 'string') return false;
-    if (!Number.isFinite(d.x) || !Number.isFinite(d.y)) return false;
+  if (typeof s.tanks !== 'object' || s.tanks === null) return false;
+  for (const tank of Object.values(s.tanks)) {
+    if (typeof tank.fishCounts !== 'object' || tank.fishCounts === null) return false;
+    for (const count of Object.values(tank.fishCounts)) {
+      if (!Number.isFinite(count)) return false;
+    }
+    if (!Array.isArray(tank.decorations)) return false;
+    for (const d of tank.decorations) {
+      if (typeof d !== 'string') return false;
+    }
   }
   return true;
 }

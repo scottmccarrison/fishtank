@@ -1,9 +1,9 @@
 import type Phaser from 'phaser';
-import type { FishInstance } from '../types/Fish.js';
-import { instanceEarnRate } from '../util/earnRate.js';
+import type { DisplayFish } from '../types/Fish.js';
+import { speciesEarnRate } from '../util/earnRate.js';
 
 export interface CoinFloater {
-  update(instances: FishInstance[], delta: number): void;
+  update(fish: DisplayFish[], delta: number): void;
 }
 
 const FLOATER_LIFETIME_MS = 1200;
@@ -11,9 +11,12 @@ const FLOATER_RISE_PX = 30;
 const FLOATER_DEPTH = 50;
 
 /**
- * Per-fish floating "+N" coin animations. Each fish has its own accumulator
- * that increments by its earn rate every frame. When the accumulator crosses
- * 1, a "+N" text spawns at the fish's position and tweens upward / fades.
+ * Per-species floating "+N" coin animations. Each display-fish sprite has its own
+ * accumulator that increments by speciesEarnRate every frame. When the accumulator
+ * crosses 1, a "+N" text spawns at the sprite's position and tweens upward / fades.
+ *
+ * cosmetic: one floater stream per species sprite at per-one-fish rate, not count-scaled;
+ * real coins come from CoinEarn.
  *
  * Accumulator is in-memory only; reset on reload (no save impact).
  */
@@ -44,23 +47,23 @@ export function createCoinFloater(scene: Phaser.Scene): CoinFloater {
   }
 
   return {
-    update(instances, delta) {
+    update(fish, delta) {
       const dtSec = delta / 1000;
-      const liveIds = new Set(instances.map((f) => f.id));
+      const liveIds = new Set(fish.map((f) => f.speciesId));
       for (const id of accumulators.keys()) {
         if (!liveIds.has(id)) accumulators.delete(id);
       }
 
-      for (const fish of instances) {
-        const rate = instanceEarnRate(fish);
+      for (const f of fish) {
+        const rate = speciesEarnRate(f.speciesId);
         if (rate <= 0) continue;
-        const acc = (accumulators.get(fish.id) ?? 0) + rate * dtSec;
+        const acc = (accumulators.get(f.speciesId) ?? 0) + rate * dtSec;
         if (acc >= 1) {
           const whole = Math.floor(acc);
-          spawn(fish.x, fish.y, whole);
-          accumulators.set(fish.id, acc - whole);
+          spawn(f.x, f.y, whole);
+          accumulators.set(f.speciesId, acc - whole);
         } else {
-          accumulators.set(fish.id, acc);
+          accumulators.set(f.speciesId, acc);
         }
       }
     },

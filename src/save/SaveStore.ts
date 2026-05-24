@@ -1,4 +1,4 @@
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 import { CONSTANTS } from '../data/constants.js';
 import { serialize, deserialize } from './Serializer.js';
 
@@ -8,7 +8,7 @@ import { serialize, deserialize } from './Serializer.js';
  *  - localStorage unavailable (private mode in some browsers)
  *  - malformed/unknown-version payload
  */
-export function loadSave(): SaveStateV1 | null {
+export function loadSave(): SaveStateV2 | null {
   try {
     const raw = localStorage.getItem(CONSTANTS.SAVE_KEY);
     if (raw === null) return null;
@@ -20,7 +20,7 @@ export function loadSave(): SaveStateV1 | null {
 }
 
 /** Persist state to localStorage. Swallows errors (full quota, private mode). */
-export function writeSave(state: SaveStateV1): void {
+export function writeSave(state: SaveStateV2): void {
   try {
     localStorage.setItem(CONSTANTS.SAVE_KEY, serialize(state));
   } catch (e) {

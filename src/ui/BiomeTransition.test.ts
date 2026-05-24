@@ -2,23 +2,26 @@ import { describe, it, expect, vi } from 'vitest';
 import type Phaser from 'phaser';
 import { createBiomeTransition } from './BiomeTransition.js';
 import { BIOMES } from '../data/biomes.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 
 const reefThreshold = BIOMES.find((b) => b.id === 'open-reef')!.unlockThreshold;
 
-const baseState = (lifetimeEarned: number): SaveStateV1 => ({
-  version: 1,
+const baseState = (lifetimeEarned: number): SaveStateV2 => ({
+  version: 2,
   lastSavedAt: '2026-05-22T12:00:00.000Z',
   coinBalance: 0,
   lifetimeEarned,
-  fishInstances: [],
-  decorationInstances: [],
+  tanks: {
+    'tide-pool': { fishCounts: {}, decorations: [] },
+    'open-reef': { fishCounts: {}, decorations: [] },
+    'abyss': { fishCounts: {}, decorations: [] },
+  },
 });
 
 function makeMockScene() {
   const texts: Array<{ x: number; y: number; text: string }> = [];
   const sceneShim = {
-    scale: { width: 800, height: 600 },
+    scale: { width: 450, height: 800 },
     add: {
       text: (x: number, y: number, t: string) => {
         texts.push({ x, y, text: t });

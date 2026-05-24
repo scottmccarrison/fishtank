@@ -1,43 +1,36 @@
-import type { DecorationInstance, DecorationSpecies } from '../types/Decoration.js';
+import type { DecorationSpecies } from '../types/Decoration.js';
 import { DECORATIONS } from '../data/decorations.js';
-import { uuid } from '../util/uuid.js';
 import { getState } from '../state.js';
 
 const SPECIES_BY_ID = new Map<string, DecorationSpecies>(
   DECORATIONS.map((s) => [s.id, s]),
 );
 
-export type PurchaseDecorationResult =
-  | { success: true; newDecoration: DecorationInstance; cost: number }
-  | { success: false; reason: 'unknown_species' | 'insufficient_funds' };
+export type DecorationResult =
+  | { success: true; speciesId: string; cost: number }
+  | { success: false; reason: 'unknown_decoration' | 'insufficient_funds' | 'already_owned' };
 
 /**
- * Purchase a decoration: validate balance, deduct cost, append to
- * decorationInstances. Mutates state in place (consistent with purchaseFish).
- *
- * Default placement is near the center of the tank with small random jitter
- * so multiple consecutive purchases don't perfectly stack. The player drags
- * elsewhere via the M6.4 DecorationManager.
+ * Adds a decoration to a biome's owned set. No UI calls this in Epic A; Epic B wires the buy affordance.
+ * On success: adds speciesId to state.tanks[biomeId].decorations if absent (else already_owned).
+ * The diorama (WS2) renders whatever is in decorations - empty on fresh saves.
  */
-export function purchaseDecoration(speciesId: string): PurchaseDecorationResult {
+export function purchaseDecoration(speciesId: string, biomeId: string): DecorationResult {
   const species = SPECIES_BY_ID.get(speciesId);
-  if (!species) return { success: false, reason: 'unknown_species' };
+  if (!species) return { success: false, reason: 'unknown_decoration' };
 
   const state = getState();
   if (state.coinBalance < species.cost) {
     return { success: false, reason: 'insufficient_funds' };
   }
 
+  const tank = state.tanks[biomeId];
+  if (tank.decorations.includes(speciesId)) {
+    return { success: false, reason: 'already_owned' };
+  }
+
   state.coinBalance -= species.cost;
+  tank.decorations.push(speciesId);
 
-  const newDecoration: DecorationInstance = {
-    id: uuid(),
-    speciesId: species.id,
-    x: 400 + Math.floor(Math.random() * 80) - 40,
-    y: 300 + Math.floor(Math.random() * 80) - 40,
-    placedAt: new Date().toISOString(),
-  };
-  state.decorationInstances.push(newDecoration);
-
-  return { success: true, newDecoration, cost: species.cost };
+  return { success: true, speciesId, cost: species.cost };
 }

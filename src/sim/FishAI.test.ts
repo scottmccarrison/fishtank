@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { FishAI } from './FishAI.js';
-import type { FishInstance } from '../types/Fish.js';
+import type { DisplayFish } from '../types/Fish.js';
 
-const makeFish = (overrides: Partial<FishInstance> = {}): FishInstance => ({
-  id: 'fish-1',
+const makeFish = (overrides: Partial<DisplayFish> = {}): DisplayFish => ({
   speciesId: 'goldfish',
   x: 400,
   y: 300,
   direction: 1,
-  ownedAt: '2026-05-22T12:00:00.000Z',
   ...overrides,
 });
 
@@ -40,10 +38,10 @@ describe('FishAI', () => {
     expect(fish.x).toBeGreaterThanOrEqual(32);
   });
 
-  it('initializes AI state lazily for new fish', () => {
+  it('initializes AI state lazily for new fish (keyed by speciesId)', () => {
     const ai = new FishAI({ tankWidth: 800, tankHeight: 600, rng: stableRng });
-    const fish1 = makeFish({ id: 'a' });
-    const fish2 = makeFish({ id: 'b' });
+    const fish1 = makeFish({ speciesId: 'goldfish' });
+    const fish2 = makeFish({ speciesId: 'guppy' });
     ai.update([fish1], 200);
     ai.update([fish1, fish2], 200);
     expect(fish1.x).not.toBe(400);
@@ -69,5 +67,17 @@ describe('FishAI', () => {
     ai.update([fish], 1000);
     ai.update([fish], 500);
     expect(Math.abs(fish.x - startX)).toBeGreaterThan(20);
+  });
+
+  it('stays within tank bounds after many ticks', () => {
+    const ai = new FishAI({ tankWidth: 450, tankHeight: 480, rng: stableRng });
+    const fish = makeFish({ x: 225, y: 240 });
+    for (let i = 0; i < 100; i++) {
+      ai.update([fish], 200);
+    }
+    expect(fish.x).toBeGreaterThanOrEqual(32);
+    expect(fish.x).toBeLessThanOrEqual(450 - 32);
+    expect(fish.y).toBeGreaterThanOrEqual(32);
+    expect(fish.y).toBeLessThanOrEqual(480 - 32);
   });
 });

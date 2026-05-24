@@ -2,24 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { startCoinEarn } from './CoinEarn.js';
 import { SimLoop } from './SimLoop.js';
 import { CONSTANTS } from '../data/constants.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 
-const oneGoldfish = (): SaveStateV1 => ({
-  version: 1,
+const oneGoldfish = (): SaveStateV2 => ({
+  version: 2,
   lastSavedAt: '2026-05-22T12:00:00.000Z',
   coinBalance: 0,
   lifetimeEarned: 0,
-  fishInstances: [
-    {
-      id: 'g',
-      speciesId: 'goldfish',
-      x: 100,
-      y: 100,
-      direction: 1,
-      ownedAt: '2026-05-22T12:00:00.000Z',
-    },
-  ],
-  decorationInstances: [],
+  tanks: {
+    'tide-pool': { fishCounts: { goldfish: 1 }, decorations: [] },
+    'open-reef': { fishCounts: {}, decorations: [] },
+    'abyss': { fishCounts: {}, decorations: [] },
+  },
 });
 
 describe('CoinEarn', () => {
@@ -48,7 +42,14 @@ describe('CoinEarn', () => {
   });
 
   it('does not earn when no fish are owned', () => {
-    const state: SaveStateV1 = { ...oneGoldfish(), fishInstances: [] };
+    const state: SaveStateV2 = {
+      ...oneGoldfish(),
+      tanks: {
+        'tide-pool': { fishCounts: {}, decorations: [] },
+        'open-reef': { fishCounts: {}, decorations: [] },
+        'abyss': { fishCounts: {}, decorations: [] },
+      },
+    };
     const loop = new SimLoop();
     activeLoop = loop;
     startCoinEarn(() => state, () => {}, loop);

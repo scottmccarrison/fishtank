@@ -1,11 +1,11 @@
 import type { SimLoop } from './SimLoop.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 import { applyCatchup, type CatchupResult } from './OfflineCatchup.js';
 import { flushSave } from '../save/Autosave.js';
 
 export interface VisibilityHandlerOptions {
-  getState: () => SaveStateV1;
-  setState: (newState: SaveStateV1) => void;
+  getState: () => SaveStateV2;
+  setState: (newState: SaveStateV2) => void;
   simLoop: SimLoop;
   /** Optional - M7 wires this to the welcome-back toast. */
   onCatchup?: (result: { elapsedMs: number; coinsEarned: number }) => void;
