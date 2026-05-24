@@ -1,7 +1,9 @@
 # ADR-0004: Gameplay model and engagement loop
 
-**Status:** Accepted
+**Status:** Accepted (decisions #2, #3, #5 partially superseded by [ADR-0006](0006-diorama-ledger-redesign.md))
 **Date:** 2026-05-21
+
+> **Superseded items:** #2 (single currency) - Pearls added as a gate currency. #3 (coins-only axis / pure-threshold biome unlocks) - biome unlocks become pearl-gated. #5 (drag-and-drop decoration rearranging) - replaced by auto-placed functional decorations. See ADR-0006 for rationale. Everything else here still stands.
 
 ## Context
 
