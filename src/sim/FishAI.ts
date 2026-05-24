@@ -5,6 +5,8 @@ import {
   moveBottomDweller,
   moveDrifter,
   movePredator,
+  cohesion,
+  flee,
   DRIFT_SPEED,
   type AIState,
   type Bounds,
@@ -52,6 +54,7 @@ export class FishAI {
     this.elapsedMs += dt;
     const bounds: Bounds = { width: this.width, height: this.height, margin: this.margin };
 
+    // --- Pass 1: solo-move every fish (WS1 per-archetype dispatch) ---
     for (const f of fish) {
       const state = this.ensureState(f);
 
@@ -72,6 +75,40 @@ export class FishAI {
         default:
           moveCruiser(f, state, dt, this.elapsedMs, bounds, this.rng);
           break;
+      }
+    }
+
+    // --- Pass 2: inter-species interactions using post-move positions ---
+
+    // Compute schooler centroid from post-move positions
+    const schoolers = fish.filter(f => f.behaviorType === 'schooler');
+    const predators = fish.filter(f => f.behaviorType === 'predator');
+
+    let centroid: { x: number; y: number } | null = null;
+    if (schoolers.length > 0) {
+      let sumX = 0;
+      let sumY = 0;
+      for (const s of schoolers) {
+        sumX += s.x;
+        sumY += s.y;
+      }
+      centroid = { x: sumX / schoolers.length, y: sumY / schoolers.length };
+    }
+
+    for (const f of fish) {
+      const state = this.ensureState(f);
+
+      // Flee: apply to all non-predators when predators are present
+      if (f.behaviorType !== 'predator' && predators.length > 0) {
+        flee(f, state, predators);
+      }
+
+      // Cohesion: schoolers only, skip if already darting/fleeing
+      if (f.behaviorType === 'schooler' && state.dartMs <= 0 && centroid !== null && schoolers.length > 1) {
+        // Compute centroid excluding this fish
+        const othersX = (centroid.x * schoolers.length - f.x) / (schoolers.length - 1);
+        const othersY = (centroid.y * schoolers.length - f.y) / (schoolers.length - 1);
+        cohesion(f, state, { x: othersX, y: othersY });
       }
     }
   }

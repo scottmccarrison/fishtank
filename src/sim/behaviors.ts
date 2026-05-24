@@ -31,6 +31,12 @@ export const PREDATOR_WOBBLE_AMP = 2;    // px/s - minimal wobble for predators
 // Schooler constants
 export const SCHOOLER_DART_PROB = 0.08;  // per second - twitchier than cruiser
 
+// Interaction constants (WS2)
+export const COHESION_GAIN = 0.5;    // steer strength toward centroid
+export const COHESION_MAX_V = 6;     // px/s cap on cohesion velocity contribution
+export const FLEE_RADIUS = 120;      // px - prey within this distance of a predator flees
+export const FLEE_SPEED = 100;       // px/s flee dart speed
+
 // Diorama dimensions (matches CONSTANTS in data/constants.ts)
 export const DIORAMA_HEIGHT = 480;
 
@@ -226,6 +232,99 @@ export function moveDrifter(
 
   bounceX(fish, bounds);
   clampY(fish, bounds);
+}
+
+// ---------------------------------------------------------------------------
+// Interaction: cohesion (WS2)
+// Nudge a schooler toward the centroid of other schoolers.
+// Only applies when dartMs <= 0 (caller must gate on that).
+// The centroid should be computed from post-move positions EXCLUDING this fish.
+// No-op when centroid === fish position (i.e. no other schoolers present).
+// ---------------------------------------------------------------------------
+export function cohesion(fish: DisplayFish, state: AIState, centroid: { x: number; y: number }): void {
+  const dx = centroid.x - fish.x;
+  const dy = centroid.y - fish.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  // No other schoolers - centroid equals this fish's position
+  if (dist < 0.001) return;
+
+  // Scale toward centroid by COHESION_GAIN, capped at COHESION_MAX_V
+  const rawVx = (dx / dist) * COHESION_GAIN * dist;
+  const rawVy = (dy / dist) * COHESION_GAIN * dist;
+  const mag = Math.sqrt(rawVx * rawVx + rawVy * rawVy);
+
+  let vx: number;
+  let vy: number;
+  if (mag > COHESION_MAX_V) {
+    vx = (rawVx / mag) * COHESION_MAX_V;
+    vy = (rawVy / mag) * COHESION_MAX_V;
+  } else {
+    vx = rawVx;
+    vy = rawVy;
+  }
+
+  // Apply nudge directly to position (one-shot velocity pulse, not stored)
+  fish.x += vx;
+  fish.y += vy;
+
+  // Update direction to face movement if the horizontal nudge is meaningful
+  if (Math.abs(vx) > 0.001) {
+    fish.direction = vx >= 0 ? 1 : -1;
+  }
+
+  // Update dart state to reflect the cohesion as a brief impulse
+  // (uses the dart velocity fields so the caller can gate on dartMs)
+  state.dartVx = vx;
+  state.dartVy = vy;
+}
+
+// ---------------------------------------------------------------------------
+// Interaction: flee (WS2)
+// Set an absolute flee velocity pointing AWAY from the nearest predator
+// within FLEE_RADIUS. Does NOT multiply by fish.direction - the vector is a
+// world-space direction so prey always moves away from the predator.
+// After setting velocity, direction is updated to match travel direction.
+// Reuses dartMs/dartVx/dartVy fields so the existing dart-drain loop handles it.
+// No-op when no predators are within range.
+// ---------------------------------------------------------------------------
+export function flee(
+  fish: DisplayFish,
+  state: AIState,
+  predators: DisplayFish[],
+  dartDurationMs?: number,
+): void {
+  const duration = dartDurationMs ?? 500; // ms - flee dart duration
+
+  let nearestDist = Infinity;
+  let nearestPredator: DisplayFish | null = null;
+
+  for (const predator of predators) {
+    const dx = fish.x - predator.x;
+    const dy = fish.y - predator.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < FLEE_RADIUS && dist < nearestDist) {
+      nearestDist = dist;
+      nearestPredator = predator;
+    }
+  }
+
+  if (!nearestPredator) return;
+
+  // Absolute world-vector pointing AWAY from predator - do NOT multiply by fish.direction
+  const dx = fish.x - nearestPredator.x;
+  const dy = fish.y - nearestPredator.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  // Normalize and scale to FLEE_SPEED
+  const nx = dist > 0.001 ? dx / dist : 1;
+  const ny = dist > 0.001 ? dy / dist : 0;
+
+  state.dartMs = duration;
+  state.dartVx = nx * FLEE_SPEED;
+  state.dartVy = ny * FLEE_SPEED;
+
+  // Update direction so sprite faces the direction of travel
+  fish.direction = state.dartVx >= 0 ? 1 : -1;
 }
 
 // ---------------------------------------------------------------------------
