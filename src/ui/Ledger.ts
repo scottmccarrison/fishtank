@@ -181,6 +181,7 @@ export function createLedger(
   let hitZone: Phaser.GameObjects.Rectangle | null = null;
   let onPointerMove: ((ptr: Phaser.Input.Pointer) => void) | null = null;
   let onPointerUp: (() => void) | null = null;
+  let onWheel: ((ptr: Phaser.Input.Pointer, objs: unknown, dx: number, dy: number) => void) | null = null;
 
   function buildRows(biomeId: string): void {
     // Tear down previous listeners and hitZone before creating new ones
@@ -195,6 +196,10 @@ export function createLedger(
     if (onPointerUp) {
       scene.input.off('pointerup', onPointerUp);
       onPointerUp = null;
+    }
+    if (onWheel) {
+      scene.input.off('wheel', onWheel);
+      onWheel = null;
     }
 
     // Tear down previous rows + mask
@@ -250,6 +255,15 @@ export function createLedger(
 
     scene.input.on('pointermove', onPointerMove);
     scene.input.on('pointerup', onPointerUp);
+
+    // Mouse-wheel / trackpad scroll when the pointer is over the list region.
+    onWheel = (ptr: Phaser.Input.Pointer, _objs: unknown, _dx: number, dy: number) => {
+      if (!scrollContainer) return;
+      if (ptr.y < LIST_Y || ptr.y > LIST_Y + LIST_H) return;
+      const current = scrollContainer.y - LIST_Y;
+      scrollContainer.y = LIST_Y + clampScroll(current - dy, contentHeight, LIST_H);
+    };
+    scene.input.on('wheel', onWheel);
 
     // Build row game objects
     rows.forEach((row, idx) => {
@@ -438,6 +452,7 @@ export function createLedger(
       if (hitZone) { hitZone.destroy(); hitZone = null; }
       if (onPointerMove) { scene.input.off('pointermove', onPointerMove); onPointerMove = null; }
       if (onPointerUp) { scene.input.off('pointerup', onPointerUp); onPointerUp = null; }
+      if (onWheel) { scene.input.off('wheel', onWheel); onWheel = null; }
       if (maskGraphics) maskGraphics.destroy();
       root.destroy(true);
     },
