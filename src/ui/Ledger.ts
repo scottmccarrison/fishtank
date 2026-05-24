@@ -212,6 +212,15 @@ export function createLedger(
     const rows = rowsForBiome(biomeId);
     const contentHeight = rows.length * ROW_H;
 
+    // Drag-scroll hit-zone FIRST, behind the rows. Phaser input is topOnly, so
+    // if this transparent zone sat above the rows it would swallow every BUY
+    // tap. Rows + BUY buttons are added after, so they hit-test on top of it;
+    // taps on empty row area fall through to this zone for dragging.
+    hitZone = scene.add
+      .rectangle(LEDGER_X + LEDGER_W / 2, LIST_Y + LIST_H / 2, LEDGER_W, LIST_H, 0x000000, 0)
+      .setInteractive();
+    root.add(hitZone);
+
     // Container anchored at top-left of the list region; rows use local coords
     scrollContainer = scene.add.container(LEDGER_X, LIST_Y);
     root.add(scrollContainer);
@@ -221,12 +230,6 @@ export function createLedger(
     maskGraphics.fillRect(LEDGER_X, LIST_Y, LEDGER_W, LIST_H);
     scrollMask = maskGraphics.createGeometryMask();
     scrollContainer.setMask(scrollMask);
-
-    // Drag input on a transparent hit-zone rectangle covering the list region
-    hitZone = scene.add
-      .rectangle(LEDGER_X + LEDGER_W / 2, LIST_Y + LIST_H / 2, LEDGER_W, LIST_H, 0x000000, 0)
-      .setInteractive();
-    root.add(hitZone);
 
     hitZone.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
       isDragging = true;
@@ -317,9 +320,8 @@ export function createLedger(
         // Reject taps on buttons scrolled outside the visible list viewport.
         // Geometry masks clip visuals only - Phaser does not clip input.
         const rowAbsoluteY = (scrollContainer ? scrollContainer.y : LIST_Y) + rowLocalY + ROW_H / 2;
-        const listTop = LIST_Y + TAB_H;
-        const listBottom = LEDGER_Y + LEDGER_H;
-        if (rowAbsoluteY < listTop || rowAbsoluteY > listBottom) return;
+        // LIST_Y already includes the tab row; do not add TAB_H again.
+        if (rowAbsoluteY < LIST_Y || rowAbsoluteY > LIST_Y + LIST_H) return;
 
         const result = purchaseFish(row.speciesId);
         if (!result.success && import.meta.env?.DEV) {
