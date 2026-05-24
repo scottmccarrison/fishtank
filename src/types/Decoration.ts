@@ -9,17 +9,5 @@ export interface DecorationSpecies {
   /** Path relative to public/, e.g. "assets/decorations/Coral.png". */
   assetPath: string;
 }
-
-/** Player-placed decoration instance. */
-export interface DecorationInstance {
-  /** Unique instance ID (UUID v4). */
-  id: string;
-  /** References DecorationSpecies.id. */
-  speciesId: string;
-  /** Placement x in tank coords. */
-  x: number;
-  /** Placement y in tank coords. */
-  y: number;
-  /** ISO timestamp of placement. */
-  placedAt: string;
-}
+// DecorationInstance was removed in Phase 2.A WS4 - per-instance placement
+// replaced by per-biome decorations[] string array in SaveStateV2.
