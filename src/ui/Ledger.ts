@@ -26,6 +26,9 @@ const ROW_W = LEDGER_W - 20;              // 430
 
 const PANEL_DEPTH = 50; // above floaters (50), below toast (150)
 const BG_COLOR = 0x0a1a2e;
+// Flat-fill color for unowned species - applied with setTintFill so the whole
+// shape becomes one solid color (a true silhouette), hiding the real fish.
+const SILHOUETTE_TINT = 0x000000;
 
 // ---------------------------------------------------------------------------
 // Exported pure helpers (unit-testable without Phaser)
@@ -55,6 +58,14 @@ export function rowsForBiome(biomeId: string): RowData[] {
  */
 export function isTabSelectable(biomeId: string, lifetimeEarned: number): boolean {
   return isBiomeUnlocked(biomeId, lifetimeEarned);
+}
+
+/**
+ * Row label text. Unowned species (count 0) stay a mystery - shown as "???"
+ * with no name or count. Once owned, the real name and count are revealed.
+ */
+export function rowLabel(speciesName: string, count: number): string {
+  return count > 0 ? `${speciesName}  x${count}` : '???';
 }
 
 /**
@@ -89,9 +100,11 @@ export interface Ledger {
 
 interface RowUI {
   container: Phaser.GameObjects.Container;
+  icon: Phaser.GameObjects.Image;
   countText: Phaser.GameObjects.Text;
   buyBtn: Phaser.GameObjects.Text;
   speciesId: string;
+  speciesName: string;
   cost: number;
   lastAffordable: boolean | null;
   lastCount: number;
@@ -287,17 +300,22 @@ export function createLedger(
       rowBg.setStrokeStyle(1, 0x224466);
       rowContainer.add(rowBg);
 
-      // Species icon
+      // Ownership drives the mystery: unowned species are silhouetted with a
+      // "???" label until bought, then revealed.
+      const state = getState();
+      const count = state.tanks[biomeId]?.fishCounts[row.speciesId] ?? 0;
+      const owned = count > 0;
+
+      // Species icon - flat-fill silhouette while unowned
       const icon = scene.add
         .image(LEDGER_X + 36, rowLocalY + ROW_H / 2, row.speciesId)
         .setScale(species.scale * 1.5);
+      if (!owned) icon.setTintFill(SILHOUETTE_TINT);
       rowContainer.add(icon);
 
-      // Name + count text
-      const state = getState();
-      const count = state.tanks[biomeId]?.fishCounts[row.speciesId] ?? 0;
+      // Name + count text - "???" until owned
       const countText = scene.add
-        .text(LEDGER_X + 72, rowLocalY + ROW_H / 2 - 10, `${species.name}  x${count}`, {
+        .text(LEDGER_X + 72, rowLocalY + ROW_H / 2 - 10, rowLabel(species.name, count), {
           fontSize: '13px',
           color: '#ffffff',
           fontFamily: 'monospace',
@@ -348,9 +366,11 @@ export function createLedger(
 
       rowUIs.push({
         container: rowContainer,
+        icon,
         countText,
         buyBtn,
         speciesId: row.speciesId,
+        speciesName: species.name,
         cost: row.cost,
         lastAffordable: canAfford,
         lastCount: count,
@@ -404,10 +424,16 @@ export function createLedger(
     for (const row of rowUIs) {
       const newCount = tank?.fishCounts[row.speciesId] ?? 0;
       if (newCount !== row.lastCount) {
+        const wasOwned = row.lastCount > 0;
+        const nowOwned = newCount > 0;
         row.lastCount = newCount;
-        const species = FISH_SPECIES.find((s) => s.id === row.speciesId);
-        const name = species ? species.name : row.speciesId;
-        row.countText.setText(`${name}  x${newCount}`);
+        row.countText.setText(rowLabel(row.speciesName, newCount));
+        // Reveal on first purchase (silhouette -> real sprite); re-hide if it
+        // ever returns to 0 (no selling today, but kept consistent).
+        if (nowOwned !== wasOwned) {
+          if (nowOwned) row.icon.clearTint();
+          else row.icon.setTintFill(SILHOUETTE_TINT);
+        }
       }
 
       const canAfford = balance >= row.cost;
