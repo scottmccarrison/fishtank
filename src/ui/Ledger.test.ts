@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type Phaser from 'phaser';
-import { rowsForBiome, isTabSelectable, clampScroll, createLedger } from './Ledger.js';
+import { rowsForBiome, isTabSelectable, clampScroll, rowLabel, createLedger } from './Ledger.js';
 import { BIOMES } from '../data/biomes.js';
 import { FISH_SPECIES } from '../data/fish.js';
 import { fishCost } from '../util/fishCost.js';
@@ -9,6 +9,17 @@ import type { SaveStateV2 } from '../types/Save.js';
 // ---------------------------------------------------------------------------
 // Pure helper tests - no Phaser instantiation
 // ---------------------------------------------------------------------------
+
+describe('rowLabel', () => {
+  it('hides unowned species behind "???"', () => {
+    expect(rowLabel('Goldfish', 0)).toBe('???');
+  });
+
+  it('reveals name and count once owned', () => {
+    expect(rowLabel('Goldfish', 1)).toBe('Goldfish  x1');
+    expect(rowLabel('Clownfish', 12)).toBe('Clownfish  x12');
+  });
+});
 
 describe('rowsForBiome', () => {
   it('returns exactly the species for tide-pool in order', () => {
@@ -157,6 +168,8 @@ function makeMockScene() {
       setDepth: () => obj,
       setAlpha: () => obj,
       setScale: () => obj,
+      setTintFill: () => obj,
+      clearTint: () => obj,
       setVisible: () => obj,
       setInteractive: () => obj,
       setMask: () => obj,
