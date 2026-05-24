@@ -6,6 +6,7 @@ import { createInitialState } from '../save/InitialState.js';
 import { getState } from '../state.js';
 import type { SimLoop } from '../sim/SimLoop.js';
 import type { SaveStateV2 } from '../types/Save.js';
+import { BIOMES } from '../data/biomes.js';
 
 export interface SettingsPanel {
   toggle(): void;
@@ -52,20 +53,26 @@ function pickFile(accept: string): Promise<File | null> {
 /**
  * Minimal shape validation beyond Serializer's version check. Catches obviously
  * broken imports (corrupted balances, malformed tanks) before they crash the game.
- * Validates the V2 shape: version 2, finite balances, tanks object with valid entries.
+ * Validates the V2 shape: version 2, finite balances, tanks object with valid entries
+ * for every known biome, non-negative fish counts, and string-only decoration arrays.
  */
-function isPlausibleSaveState(s: SaveStateV2): boolean {
+export function isPlausibleSaveState(s: SaveStateV2): boolean {
   if (s.version !== 2) return false;
-  if (!Number.isFinite(s.coinBalance)) return false;
+  if (!Number.isFinite(s.coinBalance) || s.coinBalance < 0) return false;
   if (!Number.isFinite(s.lifetimeEarned)) return false;
   if (typeof s.tanks !== 'object' || s.tanks === null) return false;
+  // Every known biome must have an entry - a save missing any biome is invalid.
+  for (const biome of BIOMES) {
+    if (!(biome.id in s.tanks)) return false;
+  }
   for (const tank of Object.values(s.tanks)) {
     if (typeof tank.fishCounts !== 'object' || tank.fishCounts === null) return false;
     for (const count of Object.values(tank.fishCounts)) {
-      if (!Number.isFinite(count)) return false;
+      if (!Number.isFinite(count) || count < 0) return false;
     }
     if (!Array.isArray(tank.decorations)) return false;
     for (const d of tank.decorations) {
+      // Reject null, numbers, objects - only plain strings are valid decoration ids.
       if (typeof d !== 'string') return false;
     }
   }

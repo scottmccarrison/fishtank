@@ -70,4 +70,16 @@ describe('purchaseFish', () => {
     expect(getState().coinBalance).toBe(10);
     expect(getState().tanks['tide-pool']!.fishCounts['goldfish'] ?? 0).toBe(0);
   });
+
+  it('returns tank_missing and does NOT deduct coins when biome tank is absent', () => {
+    // State is missing the tide-pool tank where goldfish lives
+    setState(baseState({ tanks: { 'open-reef': { fishCounts: {}, decorations: [] }, 'abyss': { fishCounts: {}, decorations: [] } } }));
+    const balanceBefore = getState().coinBalance;
+    const result = purchaseFish('goldfish');
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.reason).toBe('tank_missing');
+    // Coins must be untouched
+    expect(getState().coinBalance).toBe(balanceBefore);
+  });
 });

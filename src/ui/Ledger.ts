@@ -177,7 +177,26 @@ export function createLedger(
   let dragStartScrollY = 0;
   let isDragging = false;
 
+  // Hoisted refs so teardown can remove precisely the registered handlers
+  let hitZone: Phaser.GameObjects.Rectangle | null = null;
+  let onPointerMove: ((ptr: Phaser.Input.Pointer) => void) | null = null;
+  let onPointerUp: (() => void) | null = null;
+
   function buildRows(biomeId: string): void {
+    // Tear down previous listeners and hitZone before creating new ones
+    if (hitZone) {
+      hitZone.destroy();
+      hitZone = null;
+    }
+    if (onPointerMove) {
+      scene.input.off('pointermove', onPointerMove);
+      onPointerMove = null;
+    }
+    if (onPointerUp) {
+      scene.input.off('pointerup', onPointerUp);
+      onPointerUp = null;
+    }
+
     // Tear down previous rows + mask
     if (scrollContainer) {
       scrollContainer.destroy();
@@ -204,7 +223,7 @@ export function createLedger(
     scrollContainer.setMask(scrollMask);
 
     // Drag input on a transparent hit-zone rectangle covering the list region
-    const hitZone = scene.add
+    hitZone = scene.add
       .rectangle(LEDGER_X + LEDGER_W / 2, LIST_Y + LIST_H / 2, LEDGER_W, LIST_H, 0x000000, 0)
       .setInteractive();
     root.add(hitZone);
@@ -215,16 +234,19 @@ export function createLedger(
       dragStartScrollY = scrollContainer ? scrollContainer.y - LIST_Y : 0;
     });
 
-    scene.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
+    onPointerMove = (ptr: Phaser.Input.Pointer) => {
       if (!isDragging || !scrollContainer) return;
       const delta = ptr.y - dragStartY;
       const raw = dragStartScrollY + delta;
       scrollContainer.y = LIST_Y + clampScroll(raw, contentHeight, LIST_H);
-    });
+    };
 
-    scene.input.on('pointerup', () => {
+    onPointerUp = () => {
       isDragging = false;
-    });
+    };
+
+    scene.input.on('pointermove', onPointerMove);
+    scene.input.on('pointerup', onPointerUp);
 
     // Build row game objects
     rows.forEach((row, idx) => {
@@ -292,6 +314,13 @@ export function createLedger(
         .setInteractive({ useHandCursor: true });
 
       buyBtn.on('pointerdown', () => {
+        // Reject taps on buttons scrolled outside the visible list viewport.
+        // Geometry masks clip visuals only - Phaser does not clip input.
+        const rowAbsoluteY = (scrollContainer ? scrollContainer.y : LIST_Y) + rowLocalY + ROW_H / 2;
+        const listTop = LIST_Y + TAB_H;
+        const listBottom = LEDGER_Y + LEDGER_H;
+        if (rowAbsoluteY < listTop || rowAbsoluteY > listBottom) return;
+
         const result = purchaseFish(row.speciesId);
         if (!result.success && import.meta.env?.DEV) {
           console.log('[ledger] buy failed:', result.reason);
@@ -404,8 +433,11 @@ export function createLedger(
     },
 
     destroy(): void {
-      root.destroy(true);
+      if (hitZone) { hitZone.destroy(); hitZone = null; }
+      if (onPointerMove) { scene.input.off('pointermove', onPointerMove); onPointerMove = null; }
+      if (onPointerUp) { scene.input.off('pointerup', onPointerUp); onPointerUp = null; }
       if (maskGraphics) maskGraphics.destroy();
+      root.destroy(true);
     },
   };
 }
