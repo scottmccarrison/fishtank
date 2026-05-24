@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { CONSTANTS } from '../data/constants.js';
 
 /**
  * Visible sandy floor at the bottom of the tank with scattered pebbles for texture.
@@ -22,10 +23,9 @@ export interface TankFloor {
   destroy(): void;
 }
 
-export function createTankFloor(scene: Phaser.Scene): TankFloor {
+export function createTankFloor(scene: Phaser.Scene, floorBottomY = CONSTANTS.DIORAMA_HEIGHT): TankFloor {
   const w = scene.scale.width;
-  const h = scene.scale.height;
-  const floorTopY = h - TANK_FLOOR_HEIGHT;
+  const floorTopY = floorBottomY - TANK_FLOOR_HEIGHT;
 
   const g = scene.add.graphics().setDepth(FLOOR_DEPTH);
 

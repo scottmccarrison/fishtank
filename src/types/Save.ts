@@ -1,18 +1,18 @@
-import type { FishInstance } from './Fish.js';
-import type { DecorationInstance } from './Decoration.js';
+export interface BiomeTankState {
+  /** Owned fish counts in this biome, keyed by speciesId. */
+  fishCounts: Record<string, number>;
+  /** Owned decoration species ids in this biome (one of each; cosmetic in A, functional in B). */
+  decorations: string[];
+}
 
-/** v1 save schema. version field exists so migrations can dispatch. */
-export interface SaveStateV1 {
-  /** Schema version. v1 = first published shape. */
-  version: 1;
+export interface SaveStateV2 {
+  version: 2;
   /** ISO timestamp of last save (used for offline-catchup math). */
   lastSavedAt: string;
   /** Current coin balance. */
   coinBalance: number;
   /** Lifetime coins earned (for stats/achievements). */
   lifetimeEarned: number;
-  /** All owned fish instances. */
-  fishInstances: FishInstance[];
-  /** All placed decoration instances. */
-  decorationInstances: DecorationInstance[];
+  /** Per-biome tank state, keyed by biome id. */
+  tanks: Record<string, BiomeTankState>;
 }

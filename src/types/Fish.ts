@@ -21,18 +21,10 @@ export interface FishSpecies {
   assetPath: string;
 }
 
-/** Owned fish instance in the player's tank. Many can exist per species. */
-export interface FishInstance {
-  /** Unique instance ID (UUID v4). */
-  id: string;
-  /** References FishSpecies.id. */
+/** Render-only fish in the diorama. NOT persisted. One per owned species with count > 0. */
+export interface DisplayFish {
   speciesId: string;
-  /** Current x in tank coords. */
   x: number;
-  /** Current y in tank coords. */
   y: number;
-  /** 1 = swimming right, -1 = swimming left. */
   direction: 1 | -1;
-  /** ISO timestamp of purchase. */
-  ownedAt: string;
 }

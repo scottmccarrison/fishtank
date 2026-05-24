@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 import { formatCoins } from '../util/formatCoins.js';
 import { computeTotalEarnRate } from '../util/earnRate.js';
 
@@ -13,7 +13,7 @@ export interface CoinCounter {
  */
 export function createCoinCounter(
   scene: Phaser.Scene,
-  getState: () => SaveStateV1,
+  getState: () => SaveStateV2,
 ): CoinCounter {
   const style: Phaser.Types.GameObjects.Text.TextStyle = {
     fontSize: '22px',
@@ -32,7 +32,7 @@ export function createCoinCounter(
     update() {
       const state = getState();
       balanceText.setText(`${formatCoins(state.coinBalance)} coins`);
-      const rate = computeTotalEarnRate(state.fishInstances);
+      const rate = computeTotalEarnRate(state.tanks);
       rateText.setText(`${formatCoins(rate)}/s`);
     },
   };

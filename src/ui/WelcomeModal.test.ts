@@ -50,7 +50,7 @@ describe('WelcomeModal', () => {
     expect(rects[0]).toEqual({ w: 800, h: 600 });
     expect(texts).toHaveLength(1);
     expect(texts[0]!.text).toContain('Welcome to your fish tank!');
-    expect(texts[0]!.text).toContain('SHOP');
+    expect(texts[0]!.text).toContain('ledger');
   });
 
   it('registers a pointerdown handler on the overlay', () => {

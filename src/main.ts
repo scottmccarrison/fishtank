@@ -10,6 +10,7 @@ import { startCoinEarn } from './sim/CoinEarn.js';
 import { getState, setState } from './state.js';
 import { setFirstRun, setPendingCatchup, setSimLoop } from './sessionState.js';
 import { installOrientationLock } from './orientationLock.js';
+import { CONSTANTS } from './data/constants.js';
 
 // --- Orientation lock overlay (DOM, fires before Phaser starts) ---
 installOrientationLock();
@@ -21,10 +22,18 @@ if (saved === null) {
   saved = createInitialState();
   writeSave(saved);
   if (import.meta.env.DEV) {
-    console.log('[init] no save - first run, starter:', saved.fishInstances[0]?.speciesId);
+    const totalFish = Object.values(saved.tanks).reduce(
+      (n, t) => n + Object.values(t.fishCounts).reduce((a, b) => a + b, 0),
+      0,
+    );
+    console.log('[init] no save - first run, total fish:', totalFish);
   }
 } else if (import.meta.env.DEV) {
-  console.log('[init] loaded save with', saved.fishInstances.length, 'fish, balance', saved.coinBalance.toFixed(1));
+  const totalFish = Object.values(saved.tanks).reduce(
+    (n, t) => n + Object.values(t.fishCounts).reduce((a, b) => a + b, 0),
+    0,
+  );
+  console.log('[init] loaded save with', totalFish, 'fish, balance', saved.coinBalance.toFixed(1));
 }
 
 // --- Apply offline catchup once on load ---
@@ -59,9 +68,9 @@ simLoop.start();
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
-  width: 800,
-  height: 600,
-  backgroundColor: '#2c7bd0',
+  width: CONSTANTS.CANVAS_WIDTH,
+  height: CONSTANTS.CANVAS_HEIGHT,
+  backgroundColor: '#0b1c2c',
   pixelArt: true,
   scene: [TankScene],
   scale: {

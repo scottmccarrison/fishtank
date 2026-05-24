@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import type { Biome } from '../types/Biome.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 import { getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 
 export interface BiomeTransition {
@@ -20,7 +20,7 @@ const FADE_OUT_MS = 1500;
  */
 export function createBiomeTransition(
   scene: Phaser.Scene,
-  getState: () => SaveStateV1,
+  getState: () => SaveStateV2,
   onUnlock?: (biome: Biome) => void,
 ): BiomeTransition {
   let lastBiomeId = getHighestUnlockedBiome(getState().lifetimeEarned).id;

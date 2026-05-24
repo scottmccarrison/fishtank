@@ -1,4 +1,4 @@
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 import type { SimLoop } from '../sim/SimLoop.js';
 import { CONSTANTS } from '../data/constants.js';
 import { writeSave } from './SaveStore.js';
@@ -13,8 +13,8 @@ import { writeSave } from './SaveStore.js';
  * Returns an unsubscribe function.
  */
 export function startAutosave(
-  getState: () => SaveStateV1,
-  setState: (newState: SaveStateV1) => void,
+  getState: () => SaveStateV2,
+  setState: (newState: SaveStateV2) => void,
   simLoop: SimLoop,
 ): () => void {
   let accumulatedMs = 0;
@@ -22,7 +22,7 @@ export function startAutosave(
     accumulatedMs += CONSTANTS.SIM_TICK_MS;
     if (accumulatedMs >= CONSTANTS.AUTOSAVE_INTERVAL_MS) {
       accumulatedMs = 0;
-      const updated: SaveStateV1 = {
+      const updated: SaveStateV2 = {
         ...getState(),
         lastSavedAt: new Date().toISOString(),
       };
@@ -42,8 +42,8 @@ export function startAutosave(
  * The lastSavedAt advances to now even though no time-elapsed catchup happened -
  * this stamps "we paused here," so the next applyCatchup measures from hide-time.
  */
-export function flushSave(state: SaveStateV1): SaveStateV1 {
-  const updated: SaveStateV1 = { ...state, lastSavedAt: new Date().toISOString() };
+export function flushSave(state: SaveStateV2): SaveStateV2 {
+  const updated: SaveStateV2 = { ...state, lastSavedAt: new Date().toISOString() };
   writeSave(updated);
   return updated;
 }

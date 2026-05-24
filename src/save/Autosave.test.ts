@@ -2,15 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { startAutosave, flushSave } from './Autosave.js';
 import { SimLoop } from '../sim/SimLoop.js';
 import { CONSTANTS } from '../data/constants.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 
-const baseState: SaveStateV1 = {
-  version: 1,
+const baseState: SaveStateV2 = {
+  version: 2,
   lastSavedAt: '2026-05-22T12:00:00.000Z',
   coinBalance: 0,
   lifetimeEarned: 0,
-  fishInstances: [],
-  decorationInstances: [],
+  tanks: {
+    'tide-pool': { fishCounts: {}, decorations: [] },
+    'open-reef': { fishCounts: {}, decorations: [] },
+    'abyss': { fishCounts: {}, decorations: [] },
+  },
 };
 
 describe('Autosave', () => {
@@ -42,12 +45,12 @@ describe('Autosave', () => {
     const raw = localStorage.getItem(CONSTANTS.SAVE_KEY);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw!);
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(2);
   });
 
   it('flushSave persists immediately and advances lastSavedAt', () => {
     const before = '2026-05-22T12:00:00.000Z';
-    const state: SaveStateV1 = { ...baseState, lastSavedAt: before };
+    const state: SaveStateV2 = { ...baseState, lastSavedAt: before };
     const updated = flushSave(state);
     expect(updated.lastSavedAt).not.toBe(before);
     expect(localStorage.getItem(CONSTANTS.SAVE_KEY)).not.toBeNull();

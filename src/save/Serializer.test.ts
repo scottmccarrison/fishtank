@@ -1,31 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { serialize, deserialize } from './Serializer.js';
-import type { SaveStateV1 } from '../types/Save.js';
+import type { SaveStateV2 } from '../types/Save.js';
 
-const sample: SaveStateV1 = {
-  version: 1,
+const sample: SaveStateV2 = {
+  version: 2,
   lastSavedAt: '2026-05-22T14:00:00.000Z',
   coinBalance: 123.45,
   lifetimeEarned: 567.89,
-  fishInstances: [
-    {
-      id: '00000000-0000-4000-8000-000000000001',
-      speciesId: 'goldfish',
-      x: 100,
-      y: 200,
-      direction: 1,
-      ownedAt: '2026-05-22T13:00:00.000Z',
+  tanks: {
+    'tide-pool': {
+      fishCounts: { goldfish: 2, guppy: 1 },
+      decorations: ['coral'],
     },
-  ],
-  decorationInstances: [
-    {
-      id: '00000000-0000-4000-8000-000000000002',
-      speciesId: 'coral',
-      x: 50,
-      y: 550,
-      placedAt: '2026-05-22T13:30:00.000Z',
+    'open-reef': {
+      fishCounts: {},
+      decorations: [],
     },
-  ],
+    'abyss': {
+      fishCounts: {},
+      decorations: [],
+    },
+  },
 };
 
 describe('Serializer', () => {
@@ -35,8 +30,15 @@ describe('Serializer', () => {
     expect(restored).toEqual(sample);
   });
 
-  it('round-trips an empty fish/decoration arrays state', () => {
-    const empty: SaveStateV1 = { ...sample, fishInstances: [], decorationInstances: [] };
+  it('round-trips a state with empty tanks', () => {
+    const empty: SaveStateV2 = {
+      ...sample,
+      tanks: {
+        'tide-pool': { fishCounts: {}, decorations: [] },
+        'open-reef': { fishCounts: {}, decorations: [] },
+        'abyss': { fishCounts: {}, decorations: [] },
+      },
+    };
     expect(deserialize(serialize(empty))).toEqual(empty);
   });
 
@@ -47,7 +49,7 @@ describe('Serializer', () => {
   });
 
   it('deserialize returns null on missing version', () => {
-    const noVersion = JSON.stringify({ coinBalance: 0, fishInstances: [] });
+    const noVersion = JSON.stringify({ coinBalance: 0, tanks: {} });
     expect(deserialize(noVersion)).toBeNull();
   });
 
@@ -61,5 +63,17 @@ describe('Serializer', () => {
     expect(deserialize('42')).toBeNull();
     expect(deserialize('"string"')).toBeNull();
     expect(deserialize('[1,2,3]')).toBeNull();
+  });
+
+  it('drops v1 save and returns null', () => {
+    const v1Save = JSON.stringify({
+      version: 1,
+      lastSavedAt: '2026-05-22T12:00:00.000Z',
+      coinBalance: 0,
+      lifetimeEarned: 0,
+      fishInstances: [],
+      decorationInstances: [],
+    });
+    expect(deserialize(v1Save)).toBeNull();
   });
 });

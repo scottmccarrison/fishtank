@@ -1,40 +1,36 @@
-import type { FishInstance, FishSpecies } from '../types/Fish.js';
+import type { FishSpecies } from '../types/Fish.js';
 import { FISH_SPECIES } from '../data/fish.js';
 import { fishCost } from '../util/fishCost.js';
-import { uuid } from '../util/uuid.js';
 import { getState } from '../state.js';
 
 const SPECIES_BY_ID = new Map<string, FishSpecies>(FISH_SPECIES.map((s) => [s.id, s]));
 
 export type PurchaseResult =
-  | { success: true; newFish: FishInstance; cost: number }
-  | { success: false; reason: 'unknown_species' | 'insufficient_funds' };
+  | { success: true; speciesId: string; newCount: number; cost: number }
+  | { success: false; reason: 'unknown_species' | 'tank_missing' | 'insufficient_funds' };
 
 /**
- * Purchase a fish: validate balance, deduct cost, append to fishInstances.
+ * Purchase a fish: validate balance, deduct cost, increment count in the species' biome tank.
  * Mutates the state object in place (consistent with CoinEarn and FishAI).
+ * No capacity check - that is Epic C.
  */
 export function purchaseFish(speciesId: string): PurchaseResult {
   const species = SPECIES_BY_ID.get(speciesId);
   if (!species) return { success: false, reason: 'unknown_species' };
 
-  const cost = fishCost(species);
   const state = getState();
+
+  // Guard tank existence before any mutation - avoids coin loss on missing biome.
+  const tank = state.tanks[species.biomeId];
+  if (!tank) return { success: false, reason: 'tank_missing' };
+
+  const cost = fishCost(species);
   if (state.coinBalance < cost) {
     return { success: false, reason: 'insufficient_funds' };
   }
 
   state.coinBalance -= cost;
+  tank.fishCounts[speciesId] = (tank.fishCounts[speciesId] ?? 0) + 1;
 
-  const newFish: FishInstance = {
-    id: uuid(),
-    speciesId: species.id,
-    x: 100 + Math.floor(Math.random() * 600),
-    y: 100 + Math.floor(Math.random() * 400),
-    direction: Math.random() > 0.5 ? 1 : -1,
-    ownedAt: new Date().toISOString(),
-  };
-  state.fishInstances.push(newFish);
-
-  return { success: true, newFish, cost };
+  return { success: true, speciesId, newCount: tank.fishCounts[speciesId], cost };
 }

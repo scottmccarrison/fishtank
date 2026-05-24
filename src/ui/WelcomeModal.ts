@@ -8,8 +8,9 @@ const MODAL_DEPTH = 400;
 const COPY = [
   'Welcome to your fish tank!',
   '',
-  'You have one free Goldfish to start.',
-  'Buy more fish from the SHOP to earn more coins.',
+  'You start with one Goldfish in the Tide Pool.',
+  'Buy more fish in the ledger below to earn coins faster.',
+  'Each biome has its own tank - switch with the tabs.',
   'New biomes unlock as your lifetime earnings grow.',
   '',
   'Click anywhere to dismiss.',
@@ -40,6 +41,7 @@ export function createWelcomeModal(scene: Phaser.Scene): WelcomeModal {
           stroke: '#000000',
           strokeThickness: 4,
           lineSpacing: 6,
+          wordWrap: { width: w - 40 },
         })
         .setOrigin(0.5)
         .setDepth(MODAL_DEPTH + 1);

@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import type { Biome } from '../types/Biome.js';
+import { CONSTANTS } from '../data/constants.js';
 
 export interface GradientBackdrop {
   transitionTo(biome: Biome): void;
@@ -25,7 +26,8 @@ export function createGradientBackdrop(
     const bot = parseInt(biome.gradientTo.replace('#', ''), 16);
     const g = s.add.graphics().setDepth(BACKDROP_DEPTH);
     g.fillGradientStyle(top, top, bot, bot, 1);
-    g.fillRect(0, 0, s.scale.width, s.scale.height);
+    // Confine gradient to the diorama region; the ledger region below is painted separately.
+    g.fillRect(0, 0, s.scale.width, CONSTANTS.DIORAMA_HEIGHT);
     return g;
   }
 

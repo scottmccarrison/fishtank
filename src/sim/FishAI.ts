@@ -1,4 +1,4 @@
-import type { FishInstance } from '../types/Fish.js';
+import type { DisplayFish } from '../types/Fish.js';
 
 export interface FishAIOptions {
   tankWidth: number;
@@ -26,9 +26,10 @@ const DART_SPEED = 80;
 const DEFAULT_MARGIN = 32;
 
 /**
- * Fish swim AI. Mutates FishInstance.x/y/direction each tick.
+ * Fish swim AI. Mutates DisplayFish.x/y/direction each tick.
  * AI state (dart phase, wobble offset) lives in an in-memory Map keyed by
- * instance id; it does NOT touch the save schema. Reloading resets dart state.
+ * speciesId (one DisplayFish per species, so speciesId is unique within the array).
+ * It does NOT touch the save schema. Reloading resets dart state.
  *
  * All probabilities and velocities are dt-rate-independent: this class is safe
  * to call at any update frequency (5Hz sim or 60Hz render).
@@ -48,16 +49,16 @@ export class FishAI {
     this.rng = opts.rng ?? Math.random;
   }
 
-  update(instances: FishInstance[], dt: number): void {
+  update(fish: DisplayFish[], dt: number): void {
     this.elapsedMs += dt;
     const dtSec = dt / 1000;
 
-    for (const fish of instances) {
-      const state = this.ensureState(fish);
+    for (const f of fish) {
+      const state = this.ensureState(f);
 
       if (state.dartMs > 0) {
-        fish.x += state.dartVx * dtSec;
-        fish.y += state.dartVy * dtSec;
+        f.x += state.dartVx * dtSec;
+        f.y += state.dartVy * dtSec;
         state.dartMs -= dt;
         if (state.dartMs <= 0) {
           state.dartMs = 0;
@@ -65,26 +66,26 @@ export class FishAI {
           state.dartVy = 0;
         }
       } else {
-        fish.x += state.driftSpeed * fish.direction * dtSec;
+        f.x += state.driftSpeed * f.direction * dtSec;
 
         const yVel =
           WOBBLE_VEL_AMPLITUDE *
           Math.sin(
             (2 * Math.PI * this.elapsedMs) / WOBBLE_PERIOD_MS + state.wobblePhase,
           );
-        fish.y += yVel * dtSec;
+        f.y += yVel * dtSec;
 
         if (this.rng() < DART_PROB_PER_SEC * dtSec) {
-          this.startDart(state, fish.direction);
+          this.startDart(state, f.direction);
         }
       }
 
-      this.bounce(fish);
+      this.bounce(f);
     }
   }
 
-  private ensureState(fish: FishInstance): AIState {
-    let s = this.states.get(fish.id);
+  private ensureState(fish: DisplayFish): AIState {
+    let s = this.states.get(fish.speciesId);
     if (!s) {
       s = {
         driftSpeed: DRIFT_SPEED,
@@ -93,7 +94,7 @@ export class FishAI {
         dartVx: 0,
         dartVy: 0,
       };
-      this.states.set(fish.id, s);
+      this.states.set(fish.speciesId, s);
     }
     return s;
   }
@@ -105,7 +106,7 @@ export class FishAI {
     state.dartVy = Math.sin(angle) * DART_SPEED;
   }
 
-  private bounce(fish: FishInstance): void {
+  private bounce(fish: DisplayFish): void {
     if (fish.x < this.margin) {
       fish.x = this.margin;
       fish.direction = 1;
