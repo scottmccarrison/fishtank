@@ -41,6 +41,7 @@ export function createWelcomeModal(scene: Phaser.Scene): WelcomeModal {
           stroke: '#000000',
           strokeThickness: 4,
           lineSpacing: 6,
+          wordWrap: { width: w - 40 },
         })
         .setOrigin(0.5)
         .setDepth(MODAL_DEPTH + 1);
