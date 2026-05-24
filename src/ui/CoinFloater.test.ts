@@ -8,6 +8,7 @@ const makeFish = (speciesId = 'goldfish'): DisplayFish => ({
   x: 100,
   y: 100,
   direction: 1,
+  behaviorType: 'cruiser',
 });
 
 function makeMockScene() {

@@ -39,7 +39,7 @@ describe('syncDisplayFish', () => {
       fishCounts: { goldfish: 3 },
       decorations: [],
     };
-    const existingFish: DisplayFish = { speciesId: 'goldfish', x: 100, y: 200, direction: 1 };
+    const existingFish: DisplayFish = { speciesId: 'goldfish', x: 100, y: 200, direction: 1, behaviorType: 'cruiser' };
     const existing = new Map<string, DisplayFish>([['goldfish', existingFish]]);
     const { kept, newSpeciesIds } = syncDisplayFish(tank, existing);
     expect(kept.size).toBe(1);

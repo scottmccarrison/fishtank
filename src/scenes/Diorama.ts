@@ -127,7 +127,7 @@ export function createDiorama(
     const y = 40 + Math.random() * (CONSTANTS.DIORAMA_HEIGHT - 80);
     const direction: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
 
-    const df: DisplayFish = { speciesId, x, y, direction };
+    const df: DisplayFish = { speciesId, x, y, direction, behaviorType: species.behaviorType };
     fishMap.set(speciesId, df);
 
     const sprite = scene.add.image(x, y, speciesId);
