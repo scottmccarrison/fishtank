@@ -1,4 +1,16 @@
 import type { DisplayFish } from '../types/Fish.js';
+import {
+  moveCruiser,
+  moveSchooler,
+  moveBottomDweller,
+  moveDrifter,
+  movePredator,
+  cohesion,
+  flee,
+  DRIFT_SPEED,
+  type AIState,
+  type Bounds,
+} from './behaviors.js';
 
 export interface FishAIOptions {
   tankWidth: number;
@@ -9,20 +21,6 @@ export interface FishAIOptions {
   rng?: () => number;
 }
 
-interface AIState {
-  driftSpeed: number;
-  wobblePhase: number;
-  dartMs: number;
-  dartVx: number;
-  dartVy: number;
-}
-
-const DRIFT_SPEED = 20;
-const WOBBLE_VEL_AMPLITUDE = 8;
-const WOBBLE_PERIOD_MS = 4000;
-const DART_PROB_PER_SEC = 0.025;
-const DART_DURATION_MS = 800;
-const DART_SPEED = 80;
 const DEFAULT_MARGIN = 32;
 
 /**
@@ -33,6 +31,9 @@ const DEFAULT_MARGIN = 32;
  *
  * All probabilities and velocities are dt-rate-independent: this class is safe
  * to call at any update frequency (5Hz sim or 60Hz render).
+ *
+ * Dispatches to per-archetype functions in behaviors.ts based on fish.behaviorType.
+ * Cruiser path is byte-identical to the original loop - FishAI.test.ts regression gate.
  */
 export class FishAI {
   private readonly width: number;
@@ -51,36 +52,64 @@ export class FishAI {
 
   update(fish: DisplayFish[], dt: number): void {
     this.elapsedMs += dt;
-    const dtSec = dt / 1000;
+    const bounds: Bounds = { width: this.width, height: this.height, margin: this.margin };
+
+    // --- Pass 1: solo-move every fish (WS1 per-archetype dispatch) ---
+    for (const f of fish) {
+      const state = this.ensureState(f);
+
+      switch (f.behaviorType) {
+        case 'schooler':
+          moveSchooler(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        case 'bottom-dweller':
+          moveBottomDweller(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        case 'drifter':
+          moveDrifter(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        case 'predator':
+          movePredator(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        case 'cruiser':
+        default:
+          moveCruiser(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+      }
+    }
+
+    // --- Pass 2: inter-species interactions using post-move positions ---
+
+    // Compute schooler centroid from post-move positions
+    const schoolers = fish.filter(f => f.behaviorType === 'schooler');
+    const predators = fish.filter(f => f.behaviorType === 'predator');
+
+    let centroid: { x: number; y: number } | null = null;
+    if (schoolers.length > 0) {
+      let sumX = 0;
+      let sumY = 0;
+      for (const s of schoolers) {
+        sumX += s.x;
+        sumY += s.y;
+      }
+      centroid = { x: sumX / schoolers.length, y: sumY / schoolers.length };
+    }
 
     for (const f of fish) {
       const state = this.ensureState(f);
 
-      if (state.dartMs > 0) {
-        f.x += state.dartVx * dtSec;
-        f.y += state.dartVy * dtSec;
-        state.dartMs -= dt;
-        if (state.dartMs <= 0) {
-          state.dartMs = 0;
-          state.dartVx = 0;
-          state.dartVy = 0;
-        }
-      } else {
-        f.x += state.driftSpeed * f.direction * dtSec;
-
-        const yVel =
-          WOBBLE_VEL_AMPLITUDE *
-          Math.sin(
-            (2 * Math.PI * this.elapsedMs) / WOBBLE_PERIOD_MS + state.wobblePhase,
-          );
-        f.y += yVel * dtSec;
-
-        if (this.rng() < DART_PROB_PER_SEC * dtSec) {
-          this.startDart(state, f.direction);
-        }
+      // Flee: apply to all non-predators when predators are present
+      if (f.behaviorType !== 'predator' && predators.length > 0) {
+        flee(f, state, predators);
       }
 
-      this.bounce(f);
+      // Cohesion: schoolers only, skip if already darting/fleeing
+      if (f.behaviorType === 'schooler' && state.dartMs <= 0 && centroid !== null && schoolers.length > 1) {
+        // Compute centroid excluding this fish
+        const othersX = (centroid.x * schoolers.length - f.x) / (schoolers.length - 1);
+        const othersY = (centroid.y * schoolers.length - f.y) / (schoolers.length - 1);
+        cohesion(f, state, { x: othersX, y: othersY });
+      }
     }
   }
 
@@ -97,24 +126,5 @@ export class FishAI {
       this.states.set(fish.speciesId, s);
     }
     return s;
-  }
-
-  private startDart(state: AIState, direction: 1 | -1): void {
-    const angle = -Math.PI / 4 + (this.rng() - 0.5) * Math.PI;
-    state.dartMs = DART_DURATION_MS;
-    state.dartVx = Math.cos(angle) * DART_SPEED * direction;
-    state.dartVy = Math.sin(angle) * DART_SPEED;
-  }
-
-  private bounce(fish: DisplayFish): void {
-    if (fish.x < this.margin) {
-      fish.x = this.margin;
-      fish.direction = 1;
-    } else if (fish.x > this.width - this.margin) {
-      fish.x = this.width - this.margin;
-      fish.direction = -1;
-    }
-    if (fish.y < this.margin) fish.y = this.margin;
-    if (fish.y > this.height - this.margin) fish.y = this.height - this.margin;
   }
 }

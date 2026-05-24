@@ -7,6 +7,7 @@ const makeFish = (overrides: Partial<DisplayFish> = {}): DisplayFish => ({
   x: 400,
   y: 300,
   direction: 1,
+  behaviorType: 'cruiser',
   ...overrides,
 });
 

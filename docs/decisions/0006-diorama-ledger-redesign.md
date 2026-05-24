@@ -47,8 +47,9 @@ This ADR revises several locked decisions in ADR-0004 and ADR-0005. Per the repo
 ## Phasing
 
 - **Epic A (shell):** per-species counts, save schema v2, portrait flip, diorama + ledger. Biome unlock stays a coin threshold; no pearls or capacity yet. Plan: [phase-2a-shell.md](../plans/phase-2a-shell.md).
-- **Epic B (behaviors):** authored archetypes, fish-to-fish and fish-to-decoration interactions, functional + purchasable decorations.
+- **Epic B (behaviors):** authored per-species archetypes + fish-to-fish interactions. **Scoped 2026-05-24 to behaviors only:** decorations (buying UI + fish-to-decoration hiding/perching) split out to a later epic, and predator/prey is **visual-only** (prey flees, nothing is eaten - keeps the cozy/collection model). Plan: [phase-2b-behaviors.md](../plans/phase-2b-behaviors.md).
 - **Epic C (economy / gating):** pearls + conversion, per-biome capacity + upgrades, pearl-gated unlocks (save schema v2 -> v3).
+- **Epic D (decorations):** decoration buying UI + functional fish-to-decoration interactions (split from Epic B on 2026-05-24).
 
 Overview: [phase-2-overview.md](../plans/phase-2-overview.md).
 

@@ -1,3 +1,6 @@
+/** Behavioral archetype for a fish species - determines solo motion style. */
+export type BehaviorType = 'schooler' | 'cruiser' | 'bottom-dweller' | 'drifter' | 'predator';
+
 /** Static definition of a fish species - one entry per unique creature. */
 export interface FishSpecies {
   /** Stable identifier, kebab-case, used in save state. */
@@ -19,6 +22,8 @@ export interface FishSpecies {
    * slash is intentionally omitted so the prefix is unambiguous.
    */
   assetPath: string;
+  /** Behavioral archetype - controls solo motion style in FishAI. */
+  behaviorType: BehaviorType;
 }
 
 /** Render-only fish in the diorama. NOT persisted. One per owned species with count > 0. */
@@ -27,4 +32,6 @@ export interface DisplayFish {
   x: number;
   y: number;
   direction: 1 | -1;
+  /** Behavioral archetype - set at spawn from species data. */
+  behaviorType: BehaviorType;
 }
