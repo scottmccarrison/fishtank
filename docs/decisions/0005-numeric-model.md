@@ -1,7 +1,9 @@
 # ADR-0005: Numeric model for v1
 
-**Status:** Accepted
+**Status:** Accepted (biome-gate and tank-upgrade items partially superseded by [ADR-0006](0006-diorama-ledger-redesign.md))
 **Date:** 2026-05-21
+
+> **Superseded items:** "Biome unlock gates" (implicit cost-step) - now an explicit Pearl gate. "Tank upgrades" (deferred single-vs-3-tier question) - resolved as per-biome independent capacity bought with coins. The pricing curve, earn-rate model, and all locked numbers below are unchanged and still in force. See ADR-0006.
 
 ## Context
 
