@@ -3,10 +3,10 @@ export interface BiomeTankState {
   fishCounts: Record<string, number>;
   /**
    * Current upgrade tier per decoration slot, keyed by slotId.
-   * 0 (or absent) = empty slot. Absent slots are treated as tier 0 defensively
-   * so old saves without slotTiers still load correctly.
+   * 0 (or absent) = empty slot. Optional + read defensively (`?? {}` / `?? 0`)
+   * so old saves (which predate slotTiers) load correctly without losing coins/fish.
    */
-  slotTiers: Record<string, number>;
+  slotTiers?: Record<string, number>;
 }
 
 export interface SaveStateV2 {

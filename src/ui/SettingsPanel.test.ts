@@ -64,7 +64,7 @@ describe('isPlausibleSaveState', () => {
 
   it('accepts a save with slotTiers present and valid', () => {
     const s = validState();
-    s.tanks[BIOMES[0]!.id]!.slotTiers['greenery'] = 2;
+    s.tanks[BIOMES[0]!.id]!.slotTiers!['greenery'] = 2;
     expect(isPlausibleSaveState(s)).toBe(true);
   });
 

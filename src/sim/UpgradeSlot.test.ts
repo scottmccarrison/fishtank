@@ -38,7 +38,7 @@ describe('upgradeSlot', () => {
     expect(result.tier).toBe(1);
     expect(result.cost).toBe(tier1Cost);
     expect(getState().coinBalance).toBeCloseTo(before - tier1Cost, 3);
-    expect(getState().tanks['tide-pool']!.slotTiers['greenery']).toBe(1);
+    expect(getState().tanks['tide-pool']!.slotTiers!['greenery']).toBe(1);
   });
 
   it('upgrades tier 1 to tier 2 (deducts tiers[1] cost, sets tier 2)', () => {
@@ -50,7 +50,7 @@ describe('upgradeSlot', () => {
     expect(result.tier).toBe(2);
     expect(result.cost).toBe(tier2Cost);
     expect(getState().coinBalance).toBeCloseTo(before - tier2Cost, 3);
-    expect(getState().tanks['tide-pool']!.slotTiers['greenery']).toBe(2);
+    expect(getState().tanks['tide-pool']!.slotTiers!['greenery']).toBe(2);
   });
 
   it('returns maxed when current tier equals slot length', () => {
@@ -70,7 +70,7 @@ describe('upgradeSlot', () => {
     // No deduction
     expect(getState().coinBalance).toBe(balanceBefore);
     // Tier unchanged
-    expect(getState().tanks['tide-pool']!.slotTiers['greenery']).toBe(greenerySlot.tiers.length);
+    expect(getState().tanks['tide-pool']!.slotTiers!['greenery']).toBe(greenerySlot.tiers.length);
   });
 
   it('returns insufficient_funds when balance is too low', () => {
@@ -80,7 +80,7 @@ describe('upgradeSlot', () => {
     if (result.success) return;
     expect(result.reason).toBe('insufficient_funds');
     expect(getState().coinBalance).toBe(tier1Cost - 1);
-    expect(getState().tanks['tide-pool']!.slotTiers['greenery']).toBeUndefined();
+    expect(getState().tanks['tide-pool']!.slotTiers!['greenery']).toBeUndefined();
   });
 
   it('returns unknown_slot for a nonexistent slot id', () => {
@@ -99,16 +99,16 @@ describe('upgradeSlot', () => {
 
   it('biome isolation: upgrading open-reef does not change tide-pool', () => {
     upgradeSlot('greenery', 'open-reef');
-    expect(getState().tanks['open-reef']!.slotTiers['greenery']).toBe(1);
-    expect(getState().tanks['tide-pool']!.slotTiers['greenery']).toBeUndefined();
-    expect(getState().tanks['abyss']!.slotTiers['greenery']).toBeUndefined();
+    expect(getState().tanks['open-reef']!.slotTiers!['greenery']).toBe(1);
+    expect(getState().tanks['tide-pool']!.slotTiers!['greenery']).toBeUndefined();
+    expect(getState().tanks['abyss']!.slotTiers!['greenery']).toBeUndefined();
   });
 
   it('does not mutate balance or tiers on failure (insufficient_funds)', () => {
     setState(baseState({ coinBalance: 5 }));
     upgradeSlot('greenery', 'tide-pool');
     expect(getState().coinBalance).toBe(5);
-    expect(getState().tanks['tide-pool']!.slotTiers['greenery']).toBeUndefined();
+    expect(getState().tanks['tide-pool']!.slotTiers!['greenery']).toBeUndefined();
   });
 
   it('does not mutate balance or tiers on failure (unknown_slot)', () => {

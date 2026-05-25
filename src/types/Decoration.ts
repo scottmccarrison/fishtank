@@ -11,5 +11,6 @@ export interface DecorationSpecies {
   /** Per-decoration display scale multiplier (PR2 bakes per-item values). */
   renderScale: number;
 }
-// DecorationInstance was removed in Phase 2.A WS4 - per-instance placement
-// replaced by per-biome decorations[] string array in SaveStateV2.
+// Per-instance placement was removed; decorations are placed via fixed slots
+// (see decorationSlots.ts) with the per-biome current tier stored in
+// SaveStateV2's BiomeTankState.slotTiers.

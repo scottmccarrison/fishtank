@@ -3,8 +3,9 @@
  * the tank; upgrading a slot replaces the current tier's decoration with the
  * next tier's. Tier 0 = empty slot.
  *
- * All decoration ids here must exist in DECORATIONS (verified at module load).
+ * Every tier id must exist in DECORATIONS; the DEV check at the bottom enforces it.
  */
+import { DECORATION_BY_ID } from './decorations.js';
 
 export interface DecorationSlot {
   /** Stable identifier for the slot. */
@@ -35,3 +36,15 @@ export const DECORATION_LAYOUT: Record<string, { x: number; y: number }> = {
 };
 
 export const SLOT_BY_ID = new Map(DECORATION_SLOTS.map((s) => [s.id, s]));
+
+// Fail fast in dev/test if a slot chain references a decoration id that doesn't
+// exist (a typo would otherwise crash with an opaque error at render/purchase).
+if (import.meta.env?.DEV) {
+  for (const slot of DECORATION_SLOTS) {
+    for (const id of slot.tiers) {
+      if (!DECORATION_BY_ID.has(id)) {
+        throw new Error(`[decorationSlots] slot '${slot.id}' references unknown decoration '${id}'`);
+      }
+    }
+  }
+}
