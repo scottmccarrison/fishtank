@@ -34,6 +34,9 @@ export const SCHOOLER_DART_PROB = 0.08;  // per second - twitchier than cruiser
 // Interaction constants (WS2)
 export const COHESION_GAIN = 0.5;    // steer strength toward centroid
 export const COHESION_MAX_V = 6;     // px/s cap on cohesion velocity contribution
+export const SEPARATION_RADIUS = 60; // px; schoolers closer than this push apart
+export const SEPARATION_GAIN = 8;    // push strength (stronger than cohesion so it wins up close)
+export const SEPARATION_MAX_V = 9;   // px cap on the per-tick separation nudge
 export const FLEE_RADIUS = 120;      // px - prey within this distance of a predator flees
 export const FLEE_SPEED = 100;       // px/s flee dart speed
 
@@ -276,6 +279,50 @@ export function cohesion(fish: DisplayFish, state: AIState, centroid: { x: numbe
   // (uses the dart velocity fields so the caller can gate on dartMs)
   state.dartVx = vx;
   state.dartVy = vy;
+}
+
+// ---------------------------------------------------------------------------
+// Interaction: separation (the third boids rule)
+// Push a schooler away from other schoolers within SEPARATION_RADIUS so the
+// flock keeps spacing instead of collapsing onto the cohesion centroid and
+// superimposing the sprites. Closer neighbors push harder. Exactly-overlapping
+// fish use a speciesId-ordered tie-break so the two push OPPOSITE ways and
+// actually unstack. Applied as a per-tick position nudge, like cohesion.
+// ---------------------------------------------------------------------------
+export function separation(fish: DisplayFish, neighbors: DisplayFish[]): void {
+  let pushX = 0;
+  let pushY = 0;
+  for (const n of neighbors) {
+    if (n === fish) continue;
+    const dx = fish.x - n.x;
+    const dy = fish.y - n.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > SEPARATION_RADIUS) continue;
+    if (d < 0.001) {
+      // Exactly overlapping - deterministic tie-break so the pair splits apart.
+      pushX += fish.speciesId < n.speciesId ? 1 : -1;
+      continue;
+    }
+    // Closer neighbors push harder (weight -> 1 as d -> 0).
+    const w = (SEPARATION_RADIUS - d) / SEPARATION_RADIUS;
+    pushX += (dx / d) * w;
+    pushY += (dy / d) * w;
+  }
+
+  let vx = pushX * SEPARATION_GAIN;
+  let vy = pushY * SEPARATION_GAIN;
+  const mag = Math.sqrt(vx * vx + vy * vy);
+  if (mag < 0.001) return;
+  if (mag > SEPARATION_MAX_V) {
+    vx = (vx / mag) * SEPARATION_MAX_V;
+    vy = (vy / mag) * SEPARATION_MAX_V;
+  }
+
+  fish.x += vx;
+  fish.y += vy;
+  if (Math.abs(vx) > 0.001) {
+    fish.direction = vx >= 0 ? 1 : -1;
+  }
 }
 
 // ---------------------------------------------------------------------------
