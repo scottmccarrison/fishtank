@@ -49,6 +49,13 @@ export const CONSTANTS = {
   /** Fish/decoration sprite scale (promoted from TankScene; WS2/WS3 read it). */
   RENDER_SCALE_MULTIPLIER: 3,
   /**
+   * Global "zoom" for tank contents (fish + decorations), applied on top of their
+   * individual scales. < 1 shrinks everything proportionally so the tank reads as a
+   * larger body of water without changing the tank's dimensions. The layout editor
+   * lets this be dialed live and bakes the chosen value here. Tunable.
+   */
+  CONTENT_SCALE: 0.75,
+  /**
    * Decoration sprites render at this uniform scale. Brysia decoration art has
    * varied native sizes (16-80px), so a single multiplier preserves the artist's
    * relative proportions (castle big, shell small) while reading well next to the
