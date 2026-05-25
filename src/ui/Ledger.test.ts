@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type Phaser from 'phaser';
-import { rowsForBiome, isTabSelectable, clampScroll, rowLabel, createLedger } from './Ledger.js';
+import { rowsForBiome, rowsForDecorations, isTabSelectable, clampScroll, rowLabel, createLedger } from './Ledger.js';
 import { BIOMES } from '../data/biomes.js';
 import { FISH_SPECIES } from '../data/fish.js';
+import { DECORATIONS } from '../data/decorations.js';
 import { fishCost } from '../util/fishCost.js';
 import type { SaveStateV2 } from '../types/Save.js';
 
@@ -52,6 +53,18 @@ describe('rowsForBiome', () => {
     for (const row of rows) {
       const species = FISH_SPECIES.find((s) => s.id === row.speciesId)!;
       expect(row.cost).toBe(fishCost(species));
+    }
+  });
+});
+
+describe('rowsForDecorations', () => {
+  it('returns one row per decoration, in order, with matching id and cost', () => {
+    const rows = rowsForDecorations();
+    expect(rows).toHaveLength(DECORATIONS.length);
+    expect(rows.map((r) => r.speciesId)).toEqual(DECORATIONS.map((d) => d.id));
+    for (const row of rows) {
+      const deco = DECORATIONS.find((d) => d.id === row.speciesId)!;
+      expect(row.cost).toBe(deco.cost);
     }
   });
 });

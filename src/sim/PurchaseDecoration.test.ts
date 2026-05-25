@@ -21,26 +21,26 @@ describe('purchaseDecoration', () => {
     setState(baseState());
   });
 
-  it('succeeds when balance is sufficient (apple-core costs 25)', () => {
-    const result = purchaseDecoration('apple-core', 'tide-pool');
+  it('succeeds when balance is sufficient (grass-tuft costs 25)', () => {
+    const result = purchaseDecoration('grass-tuft', 'tide-pool');
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect(result.cost).toBe(25);
-    expect(result.speciesId).toBe('apple-core');
+    expect(result.speciesId).toBe('grass-tuft');
   });
 
   it('deducts cost and adds id to the biome decorations array', () => {
     const before = getState().coinBalance;
-    const result = purchaseDecoration('coral', 'tide-pool');
+    const result = purchaseDecoration('eelgrass', 'tide-pool');
     expect(result.success).toBe(true);
     expect(getState().coinBalance).toBeCloseTo(before - 100, 3);
-    expect(getState().tanks['tide-pool']!.decorations).toContain('coral');
+    expect(getState().tanks['tide-pool']!.decorations).toContain('eelgrass');
     expect(getState().tanks['tide-pool']!.decorations).toHaveLength(1);
   });
 
   it('returns already_owned when the decoration is already in the biome', () => {
-    purchaseDecoration('coral', 'tide-pool');
-    const result = purchaseDecoration('coral', 'tide-pool');
+    purchaseDecoration('eelgrass', 'tide-pool');
+    const result = purchaseDecoration('eelgrass', 'tide-pool');
     expect(result.success).toBe(false);
     if (result.success) return;
     expect(result.reason).toBe('already_owned');
@@ -50,7 +50,7 @@ describe('purchaseDecoration', () => {
 
   it('fails on insufficient funds', () => {
     setState(baseState({ coinBalance: 10 }));
-    const result = purchaseDecoration('coral', 'tide-pool');
+    const result = purchaseDecoration('eelgrass', 'tide-pool');
     expect(result.success).toBe(false);
     if (result.success) return;
     expect(result.reason).toBe('insufficient_funds');
@@ -65,16 +65,16 @@ describe('purchaseDecoration', () => {
 
   it('does not mutate balance or decorations on failure', () => {
     setState(baseState({ coinBalance: 10 }));
-    const result = purchaseDecoration('coral', 'tide-pool');
+    const result = purchaseDecoration('eelgrass', 'tide-pool');
     expect(result.success).toBe(false);
     expect(getState().coinBalance).toBe(10);
     expect(getState().tanks['tide-pool']!.decorations).toHaveLength(0);
   });
 
   it('adds decoration to the correct biome (not all biomes)', () => {
-    purchaseDecoration('coral', 'open-reef');
-    expect(getState().tanks['open-reef']!.decorations).toContain('coral');
-    expect(getState().tanks['tide-pool']!.decorations).not.toContain('coral');
-    expect(getState().tanks['abyss']!.decorations).not.toContain('coral');
+    purchaseDecoration('eelgrass', 'open-reef');
+    expect(getState().tanks['open-reef']!.decorations).toContain('eelgrass');
+    expect(getState().tanks['tide-pool']!.decorations).not.toContain('eelgrass');
+    expect(getState().tanks['abyss']!.decorations).not.toContain('eelgrass');
   });
 });
