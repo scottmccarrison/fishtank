@@ -25,3 +25,15 @@ export function preloadDecorationSprites(scene: Phaser.Scene): void {
     scene.load.image(deco.id, encodeURI(base + deco.assetPath));
   }
 }
+
+/**
+ * Preload per-biome floor tiles and the shared water-texture overlay.
+ * Keys: 'floor-sand', 'floor-cobble', 'floor-dark', 'water-texture'.
+ */
+export function preloadSurfaceAssets(scene: Phaser.Scene): void {
+  const base = import.meta.env.BASE_URL;
+  scene.load.image('floor-sand', encodeURI(base + 'assets/brysia/floor/floor_sand.png'));
+  scene.load.image('floor-cobble', encodeURI(base + 'assets/brysia/floor/floor_cobble.png'));
+  scene.load.image('floor-dark', encodeURI(base + 'assets/brysia/floor/floor_dark.png'));
+  scene.load.image('water-texture', encodeURI(base + 'assets/brysia/backgrounds/background_3.png'));
+}

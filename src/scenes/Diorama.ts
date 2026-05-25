@@ -4,7 +4,7 @@ import { FISH_SPECIES } from '../data/fish.js';
 import { BIOMES } from '../data/biomes.js';
 import { FishAI } from '../sim/FishAI.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
-import { createTankFloor, TANK_FLOOR_HEIGHT } from '../ui/TankFloor.js';
+import { createTankFloor, TANK_FLOOR_HEIGHT, type TankFloor } from '../ui/TankFloor.js';
 import { createTankGlass } from '../ui/TankGlass.js';
 import type { DisplayFish } from '../types/Fish.js';
 import type { SaveStateV2, BiomeTankState } from '../types/Save.js';
@@ -83,8 +83,8 @@ export function createDiorama(
   }
 
   const backdrop: GradientBackdrop = createGradientBackdrop(scene, initialBiome);
-  // Floor is confined to diorama region via the floorBottomY parameter
-  createTankFloor(scene, CONSTANTS.DIORAMA_HEIGHT);
+  // Floor is confined to diorama region; receives the initial biome so it picks the right tile.
+  const floor: TankFloor = createTankFloor(scene, initialBiomeId, CONSTANTS.DIORAMA_HEIGHT);
   // Glass frame + waterline overlay so the diorama reads as a contained tank.
   const glass = createTankGlass(scene);
 
@@ -191,11 +191,12 @@ export function createDiorama(
 
       activeBiomeId = biomeId;
 
-      // Switch backdrop gradient
+      // Switch backdrop gradient and floor tile
       const biome = BIOME_BY_ID.get(biomeId);
       if (biome) {
         backdrop.transitionTo(biome);
       }
+      floor.showBiome(biomeId);
     },
 
     update(dt: number): void {
@@ -237,6 +238,7 @@ export function createDiorama(
 
     destroy(): void {
       backdrop.destroy();
+      floor.destroy();
       glass.destroy();
       for (const render of biomeRender.values()) {
         render.container.destroy(true);

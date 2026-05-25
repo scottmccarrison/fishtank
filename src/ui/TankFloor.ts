@@ -2,50 +2,51 @@ import type Phaser from 'phaser';
 import { CONSTANTS } from '../data/constants.js';
 
 /**
- * Visible sandy floor at the bottom of the tank with scattered pebbles for texture.
- * Indicates the implicit boundary where decoration drag clamps - without this, the
- * invisible drag stop looks like a glitch ("I can't drop the coral here, why?").
+ * Per-biome tiled floor at the bottom of the tank.
+ * Uses a TileSprite so the 48x48 tile fills the 60px band vertically (scale 1.25)
+ * and tiles horizontally across the full canvas width.
  *
  * Depth -90 sits above the GradientBackdrop (-100) and below decorations (-5)
- * and fish (0), so swimming fish and placed decorations appear in front of the
- * sand. Static; does not change with biome (sandy floor reads as universal).
+ * and fish (0), so swimming fish and placed decorations appear in front of it.
  */
 
 const FLOOR_DEPTH = -90;
-/** Height of the sandy band at the bottom of the tank, in pixels. */
+/** Height of the floor band at the bottom of the tank, in pixels. */
 export const TANK_FLOOR_HEIGHT = 60;
 
-const SAND_TOP = 0xc8a87a; // light sand
-const SAND_BOT = 0x8b6f4e; // darker damp sand
-const PEBBLE_COLOR = 0x6b4f3a;
+const FLOOR_TEXTURE: Record<string, string> = {
+  'tide-pool': 'floor-sand',
+  'open-reef': 'floor-cobble',
+  'abyss': 'floor-dark',
+};
 
 export interface TankFloor {
+  showBiome(biomeId: string): void;
   destroy(): void;
 }
 
-export function createTankFloor(scene: Phaser.Scene, floorBottomY = CONSTANTS.DIORAMA_HEIGHT): TankFloor {
-  const w = scene.scale.width;
-  const floorTopY = floorBottomY - TANK_FLOOR_HEIGHT;
+export function createTankFloor(
+  scene: Phaser.Scene,
+  initialBiomeId: string,
+  floorBottomY = CONSTANTS.DIORAMA_HEIGHT,
+): TankFloor {
+  const floorTopY = floorBottomY - TANK_FLOOR_HEIGHT; // 420
+  const key = FLOOR_TEXTURE[initialBiomeId] ?? 'floor-sand';
 
-  const g = scene.add.graphics().setDepth(FLOOR_DEPTH);
-
-  // Sand band (4-corner gradient: lighter at top, darker at bottom)
-  g.fillGradientStyle(SAND_TOP, SAND_TOP, SAND_BOT, SAND_BOT, 1);
-  g.fillRect(0, floorTopY, w, TANK_FLOOR_HEIGHT);
-
-  // Scattered pebbles - position is deterministic from index so the floor
-  // looks identical across reloads / biome transitions.
-  g.fillStyle(PEBBLE_COLOR);
-  for (let i = 0; i < 18; i++) {
-    const x = (i * 47 + 23) % w;
-    const y = floorTopY + 12 + ((i * 19) % (TANK_FLOOR_HEIGHT - 24));
-    const r = 3 + (i % 4);
-    g.fillCircle(x, y, r);
-  }
+  const tile = scene.add
+    .tileSprite(0, floorTopY, scene.scale.width, TANK_FLOOR_HEIGHT, key)
+    .setOrigin(0, 0)
+    .setDepth(FLOOR_DEPTH);
+  // Scale so the 48px native tile fills the 60px band vertically (no seam);
+  // tileSprite tiles horizontally automatically.
+  tile.setTileScale(TANK_FLOOR_HEIGHT / 48);
 
   return {
-    destroy() {
-      g.destroy();
+    showBiome(biomeId: string): void {
+      tile.setTexture(FLOOR_TEXTURE[biomeId] ?? 'floor-sand');
+    },
+    destroy(): void {
+      tile.destroy();
     },
   };
 }

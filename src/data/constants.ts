@@ -55,6 +55,8 @@ export const CONSTANTS = {
    * fish (which use RENDER_SCALE_MULTIPLIER).
    */
   DECORATION_RENDER_SCALE: 2,
+  /** Alpha of the subtle wavy water overlay rendered above the biome gradient (tunable). */
+  WATER_TEXTURE_ALPHA: 0.1,
 } as const;
 
 /** Type alias for the constants object - allows precise typing of consumers. */
