@@ -20,11 +20,11 @@ export const FISH_SPECIES: FishSpecies[] = [
   { id: 'neon-tetra',   name: 'Neon Tetra',   biomeId: 'tide-pool', costIndex: 2, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/freshwater/Neon Tetra.png',        behaviorType: 'schooler' },
   { id: 'clownfish',    name: 'Clownfish',    biomeId: 'tide-pool', costIndex: 3, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Clownfish.png',          behaviorType: 'cruiser' },
   { id: 'seahorse',     name: 'Seahorse',     biomeId: 'tide-pool', costIndex: 4, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Seahorse.png',           behaviorType: 'drifter' },
-  { id: 'starfish',     name: 'Starfish',     biomeId: 'tide-pool', costIndex: 5, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Starfish.png',           behaviorType: 'bottom-dweller' },
-  { id: 'shrimp',       name: 'Shrimp',       biomeId: 'tide-pool', costIndex: 6, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Shrimp.png',             behaviorType: 'bottom-dweller' },
+  { id: 'starfish',     name: 'Starfish',     biomeId: 'tide-pool', costIndex: 5, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Starfish.png',           behaviorType: 'rester' },
+  { id: 'shrimp',       name: 'Shrimp',       biomeId: 'tide-pool', costIndex: 6, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Shrimp.png',             behaviorType: 'walker' },
   { id: 'pufferfish',   name: 'Pufferfish',   biomeId: 'tide-pool', costIndex: 7, earnRateBase: FIRST_RATE, scale: 1.2, assetPath: 'assets/fish/saltwater/Pufferfish.png',         behaviorType: 'cruiser' },
-  { id: 'crab-blue',    name: 'Blue Crab',    biomeId: 'tide-pool', costIndex: 8, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Crab - Blue.png',        behaviorType: 'bottom-dweller' },
-  { id: 'crab-king',    name: 'King Crab',    biomeId: 'tide-pool', costIndex: 9, earnRateBase: FIRST_RATE, scale: 1.3, assetPath: 'assets/fish/saltwater/Crab - King.png',        behaviorType: 'bottom-dweller' },
+  { id: 'crab-blue',    name: 'Blue Crab',    biomeId: 'tide-pool', costIndex: 8, earnRateBase: FIRST_RATE, scale: 1.0, assetPath: 'assets/fish/saltwater/Crab - Blue.png',        behaviorType: 'walker' },
+  { id: 'crab-king',    name: 'King Crab',    biomeId: 'tide-pool', costIndex: 9, earnRateBase: FIRST_RATE, scale: 1.3, assetPath: 'assets/fish/saltwater/Crab - King.png',        behaviorType: 'walker' },
 
   // --- Open Reef (10) ---
   { id: 'purple-tang',     name: 'Purple Tang',     biomeId: 'open-reef', costIndex: 0, earnRateBase: REEF_BASE, scale: 1.0, assetPath: 'assets/fish/saltwater/Purple Tang.png',       behaviorType: 'schooler' },
@@ -35,8 +35,8 @@ export const FISH_SPECIES: FishSpecies[] = [
   { id: 'moray-eel',       name: 'Moray Eel',       biomeId: 'open-reef', costIndex: 5, earnRateBase: REEF_BASE, scale: 1.4, assetPath: 'assets/fish/saltwater/Moray Eel.png',         behaviorType: 'predator' },
   { id: 'ribbon-eel',      name: 'Ribbon Eel',      biomeId: 'open-reef', costIndex: 6, earnRateBase: REEF_BASE, scale: 1.4, assetPath: 'assets/fish/saltwater/Ribbon Eel.png',        behaviorType: 'predator' },
   { id: 'jellyfish',       name: 'Jellyfish',       biomeId: 'open-reef', costIndex: 7, earnRateBase: REEF_BASE, scale: 1.2, assetPath: 'assets/fish/saltwater/Jellyfish.png',         behaviorType: 'drifter' },
-  { id: 'flounder',        name: 'Flounder',        biomeId: 'open-reef', costIndex: 8, earnRateBase: REEF_BASE, scale: 1.3, assetPath: 'assets/fish/saltwater/Flounder.png',          behaviorType: 'bottom-dweller' },
-  { id: 'stingray',        name: 'Stingray',        biomeId: 'open-reef', costIndex: 9, earnRateBase: REEF_BASE, scale: 1.5, assetPath: 'assets/fish/saltwater/Stingray.png',          behaviorType: 'bottom-dweller' },
+  { id: 'flounder',        name: 'Flounder',        biomeId: 'open-reef', costIndex: 8, earnRateBase: REEF_BASE, scale: 1.3, assetPath: 'assets/fish/saltwater/Flounder.png',          behaviorType: 'ambusher' },
+  { id: 'stingray',        name: 'Stingray',        biomeId: 'open-reef', costIndex: 9, earnRateBase: REEF_BASE, scale: 1.5, assetPath: 'assets/fish/saltwater/Stingray.png',          behaviorType: 'glider' },
 
   // --- Abyss (8) - 4 native + 4 reused saltwater as placeholders per assets.md ---
   { id: 'anglerfish',          name: 'Anglerfish',          biomeId: 'abyss', costIndex: 0, earnRateBase: ABYSS_BASE, scale: 1.3, assetPath: 'assets/fish/saltwater/Anglerfish.png',              behaviorType: 'predator' },
@@ -46,5 +46,5 @@ export const FISH_SPECIES: FishSpecies[] = [
   { id: 'blue-angelfish',      name: 'Blue Angelfish',      biomeId: 'abyss', costIndex: 4, earnRateBase: ABYSS_BASE, scale: 1.4, assetPath: 'assets/fish/saltwater/Blue Angelfish.png',          behaviorType: 'cruiser' },
   { id: 'anchovy',             name: 'Anchovy',             biomeId: 'abyss', costIndex: 5, earnRateBase: ABYSS_BASE, scale: 1.0, assetPath: 'assets/fish/saltwater/Anchovy.png',                 behaviorType: 'schooler' },
   { id: 'goby',                name: 'Goby',                biomeId: 'abyss', costIndex: 6, earnRateBase: ABYSS_BASE, scale: 1.0, assetPath: 'assets/fish/saltwater/Goby.png',                    behaviorType: 'schooler' },
-  { id: 'crab-dungeness',      name: 'Dungeness Crab',      biomeId: 'abyss', costIndex: 7, earnRateBase: ABYSS_BASE, scale: 1.2, assetPath: 'assets/fish/saltwater/Crab - Dungeness.png',        behaviorType: 'bottom-dweller' },
+  { id: 'crab-dungeness',      name: 'Dungeness Crab',      biomeId: 'abyss', costIndex: 7, earnRateBase: ABYSS_BASE, scale: 1.2, assetPath: 'assets/fish/saltwater/Crab - Dungeness.png',        behaviorType: 'walker' },
 ];

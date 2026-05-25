@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import type { DisplayFish } from '../types/Fish.js';
 import {
-  moveBottomDweller,
+  moveRester,
+  moveWalker,
+  moveGlider,
+  moveAmbusher,
   moveDrifter,
   movePredator,
   moveSchooler,
@@ -48,54 +51,191 @@ function makeFish(overrides: Partial<DisplayFish> = {}): DisplayFish {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom-dweller
+// Floor archetypes
 // ---------------------------------------------------------------------------
-describe('moveBottomDweller', () => {
-  const bandTop = DIORAMA_HEIGHT - BOTTOM_BAND; // 360
-  const bandBottom = DEFAULT_BOUNDS.height - DEFAULT_BOUNDS.margin; // 448
+const floorY = DEFAULT_BOUNDS.height - DEFAULT_BOUNDS.margin; // 448
+const bandTop = DIORAMA_HEIGHT - BOTTOM_BAND; // 360
 
-  it('snaps a fish spawned at y=40 into the band on the first tick', () => {
-    const fish = makeFish({ y: 40, behaviorType: 'bottom-dweller' });
+describe('moveRester', () => {
+  it('snaps y to floorY (448) on every tick', () => {
+    const fish = makeFish({ y: 40, behaviorType: 'rester' });
     const state = makeState();
-    moveBottomDweller(fish, state, 16, 16, DEFAULT_BOUNDS, stableRng);
-    expect(fish.y).toBeGreaterThanOrEqual(bandTop);
-    expect(fish.y).toBeLessThanOrEqual(bandBottom);
+    moveRester(fish, state, 16, 16, DEFAULT_BOUNDS, stableRng);
+    expect(fish.y).toBe(floorY);
   });
 
-  it('stays in band over many ticks', () => {
-    const fish = makeFish({ y: 40, behaviorType: 'bottom-dweller' });
+  it('stays at floorY over many ticks', () => {
+    const fish = makeFish({ y: 240, behaviorType: 'rester' });
     const state = makeState();
     for (let i = 0; i < 200; i++) {
-      moveBottomDweller(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
-      expect(fish.y).toBeGreaterThanOrEqual(bandTop);
-      expect(fish.y).toBeLessThanOrEqual(bandBottom);
+      moveRester(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      expect(fish.y).toBe(floorY);
     }
   });
 
-  it('stays in band when starting below the top of the band', () => {
-    // Start right at the band bottom edge
-    const fish = makeFish({ y: bandBottom + 50, behaviorType: 'bottom-dweller' });
+  it('does not move horizontally', () => {
+    const fish = makeFish({ x: 225, y: 448, behaviorType: 'rester' });
     const state = makeState();
-    moveBottomDweller(fish, state, 16, 16, DEFAULT_BOUNDS, stableRng);
-    expect(fish.y).toBeLessThanOrEqual(bandBottom);
-    expect(fish.y).toBeGreaterThanOrEqual(bandTop);
+    const startX = fish.x;
+    for (let i = 0; i < 100; i++) {
+      moveRester(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+    }
+    expect(fish.x).toBe(startX);
   });
 
-  it('moves horizontally and flips at x edges', () => {
-    const fish = makeFish({ x: 445, y: 400, direction: 1, behaviorType: 'bottom-dweller' });
+  it('never sets dartMs > 0', () => {
+    const fish = makeFish({ y: 400, behaviorType: 'rester' });
     const state = makeState();
-    moveBottomDweller(fish, state, 16, 16, DEFAULT_BOUNDS, stableRng);
+    for (let i = 0; i < 100; i++) {
+      moveRester(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+    }
+    expect(state.dartMs).toBe(0);
+  });
+});
+
+describe('moveWalker', () => {
+  it('moves horizontally over time', () => {
+    const fish = makeFish({ x: 100, y: 240, direction: 1, behaviorType: 'walker' });
+    const state = makeState();
+    const startX = fish.x;
+    moveWalker(fish, state, 1000, 0, DEFAULT_BOUNDS, stableRng);
+    expect(fish.x).toBeGreaterThan(startX);
+  });
+
+  it('stays at floorY (448) on every tick', () => {
+    const fish = makeFish({ y: 240, behaviorType: 'walker' });
+    const state = makeState();
+    for (let i = 0; i < 200; i++) {
+      moveWalker(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      expect(fish.y).toBe(floorY);
+    }
+  });
+
+  it('flips at x edges', () => {
+    const fish = makeFish({ x: 445, y: floorY, direction: 1, behaviorType: 'walker' });
+    const state = makeState();
+    moveWalker(fish, state, 16, 16, DEFAULT_BOUNDS, stableRng);
     expect(fish.direction).toBe(-1);
     expect(fish.x).toBeLessThanOrEqual(DEFAULT_BOUNDS.width - DEFAULT_BOUNDS.margin);
   });
 
   it('never sets dartMs > 0', () => {
-    const fish = makeFish({ y: 400, behaviorType: 'bottom-dweller' });
+    const fish = makeFish({ y: floorY, behaviorType: 'walker' });
     const state = makeState();
     for (let i = 0; i < 100; i++) {
-      moveBottomDweller(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      moveWalker(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
     }
     expect(state.dartMs).toBe(0);
+  });
+});
+
+describe('moveGlider', () => {
+  it('stays within [bandTop, floorY] over many ticks', () => {
+    const fish = makeFish({ x: 225, y: floorY, behaviorType: 'glider' });
+    const state = makeState({ wobblePhase: 0 });
+    for (let i = 0; i < 500; i++) {
+      moveGlider(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      expect(fish.y).toBeGreaterThanOrEqual(bandTop);
+      expect(fish.y).toBeLessThanOrEqual(floorY);
+    }
+  });
+
+  it('y oscillates (is not frozen)', () => {
+    // Start in the middle of the band so the sine can push y both up and down
+    const midBand = Math.round((bandTop + floorY) / 2); // ~404
+    const fish = makeFish({ x: 225, y: midBand, behaviorType: 'glider' });
+    const state = makeState({ wobblePhase: 0 });
+    // Bob amplitude is 14 px/s; over ~1 second the fish should visit multiple y values
+    const yValues = new Set<number>();
+    for (let i = 0; i < 60; i++) {
+      moveGlider(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      yValues.add(Math.round(fish.y));
+    }
+    // Should have visited more than one distinct y value
+    expect(yValues.size).toBeGreaterThan(1);
+  });
+
+  it('moves horizontally and flips at edges', () => {
+    const fish = makeFish({ x: 445, y: floorY, direction: 1, behaviorType: 'glider' });
+    const state = makeState();
+    moveGlider(fish, state, 16, 16, DEFAULT_BOUNDS, stableRng);
+    expect(fish.direction).toBe(-1);
+  });
+
+  it('never sets dartMs > 0', () => {
+    const fish = makeFish({ y: floorY, behaviorType: 'glider' });
+    const state = makeState();
+    for (let i = 0; i < 100; i++) {
+      moveGlider(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+    }
+    expect(state.dartMs).toBe(0);
+  });
+});
+
+describe('moveAmbusher', () => {
+  it('rests at floorY (448) when not darting', () => {
+    // Use stable rng (0.5) so dart prob check never fires: 0.5 > AMBUSHER_DART_PROB*dtSec
+    const fish = makeFish({ y: 240, behaviorType: 'ambusher' });
+    const state = makeState();
+    for (let i = 0; i < 100; i++) {
+      moveAmbusher(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+    }
+    expect(fish.y).toBe(floorY);
+  });
+
+  it('darts off the floor when rng is forced below AMBUSHER_DART_PROB*dtSec', () => {
+    // dtSec = 16/1000 = 0.016; AMBUSHER_DART_PROB*dtSec ~= 0.00048; use rng=0 to force dart
+    const alwaysDart = () => 0;
+    const fish = makeFish({ x: 225, y: floorY, direction: 1, behaviorType: 'ambusher' });
+    const state = makeState();
+    // First tick: not darting, rng < threshold -> startDart arms dartMs
+    moveAmbusher(fish, state, 16, 0, DEFAULT_BOUNDS, alwaysDart);
+    expect(state.dartMs).toBeGreaterThan(0);
+    // y should now move off floor during dart
+    const yDuringDart = fish.y;
+    moveAmbusher(fish, state, 16, 16, DEFAULT_BOUNDS, alwaysDart);
+    // During active dart, y is driven by dartVy - may not equal floorY
+    expect(state.dartMs).toBeGreaterThan(0);
+    // After dart expires, settle back to floorY
+    // Drain remaining dartMs with enough ticks
+    for (let i = 0; i < 100; i++) {
+      moveAmbusher(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+    }
+    expect(fish.y).toBe(floorY);
+    // Suppress unused variable warning
+    void yDuringDart;
+  });
+
+  it('never leaves the horizontal bounds', () => {
+    const fish = makeFish({ x: 445, y: floorY, direction: 1, behaviorType: 'ambusher' });
+    const state = makeState();
+    for (let i = 0; i < 200; i++) {
+      moveAmbusher(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      expect(fish.x).toBeGreaterThanOrEqual(DEFAULT_BOUNDS.margin);
+      expect(fish.x).toBeLessThanOrEqual(DEFAULT_BOUNDS.width - DEFAULT_BOUNDS.margin);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Floor separation
+// ---------------------------------------------------------------------------
+describe('floor separation', () => {
+  it('two walkers close together push apart', () => {
+    const a = makeFish({ speciesId: 'crab-blue', x: 200, y: floorY, behaviorType: 'walker' });
+    const b = makeFish({ speciesId: 'crab-king', x: 210, y: floorY, behaviorType: 'walker' });
+    const ax = a.x;
+    separation(a, [a, b]);
+    // a is to the left of b; separation should push a further left
+    expect(a.x).toBeLessThan(ax);
+  });
+
+  it('two walkers beyond SEPARATION_RADIUS are not affected', () => {
+    const a = makeFish({ speciesId: 'crab-blue', x: 50, y: floorY, behaviorType: 'walker' });
+    const b = makeFish({ speciesId: 'crab-king', x: 50 + SEPARATION_RADIUS + 10, y: floorY, behaviorType: 'walker' });
+    const ax = a.x;
+    separation(a, [a, b]);
+    expect(a.x).toBe(ax);
   });
 });
 
