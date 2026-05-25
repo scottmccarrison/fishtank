@@ -83,4 +83,18 @@ describe('CoinFloater', () => {
     floater.update([fish], 5000);
     expect(spawned).toHaveLength(0);
   });
+
+  it('batches and throttles a fast earner instead of one floater per frame', () => {
+    const { scene, spawned } = makeMockScene();
+    const floater = createCoinFloater(scene as unknown as Phaser.Scene);
+    const fish = makeFish('anglerfish'); // abyss tier - earns many coins/sec
+    // 12 frames of 100ms (~1.2s). Unthrottled this would stream a floater nearly every frame.
+    for (let i = 0; i < 12; i++) floater.update([fish], 100);
+    // Throttled to >=900ms apart -> at most a couple of floaters in ~1.2s, not ~12.
+    expect(spawned.length).toBeLessThan(6);
+    expect(spawned.length).toBeGreaterThanOrEqual(1);
+    // ...and each shows a batched amount, not "+1".
+    const amounts = spawned.map((s) => parseInt(s.text.replace('+', ''), 10));
+    expect(Math.max(...amounts)).toBeGreaterThan(1);
+  });
 });
