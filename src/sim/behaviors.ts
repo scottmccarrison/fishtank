@@ -60,6 +60,12 @@ export interface Bounds {
   width: number;
   height: number;
   margin: number;
+  /**
+   * Optional upper swim bound (px from canvas top). When set, fish cannot rise
+   * above this line - used to keep them below the waterline. Defaults to `margin`
+   * when omitted, so existing callers and the FishAI regression gate are unchanged.
+   */
+  top?: number;
 }
 
 /**
@@ -80,7 +86,8 @@ export function bounceX(fish: DisplayFish, bounds: Bounds): void {
  * Generic y clamp - used by cruiser/schooler/predator.
  */
 function clampY(fish: DisplayFish, bounds: Bounds): void {
-  if (fish.y < bounds.margin) fish.y = bounds.margin;
+  const top = bounds.top ?? bounds.margin;
+  if (fish.y < top) fish.y = top;
   if (fish.y > bounds.height - bounds.margin) fish.y = bounds.height - bounds.margin;
 }
 

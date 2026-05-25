@@ -81,4 +81,14 @@ describe('FishAI', () => {
     expect(fish.y).toBeGreaterThanOrEqual(32);
     expect(fish.y).toBeLessThanOrEqual(480 - 32);
   });
+
+  it('keeps fish below the waterline when surfaceTop is set', () => {
+    const ai = new FishAI({ tankWidth: 450, tankHeight: 480, surfaceTop: 60, rng: stableRng });
+    const fish = makeFish({ x: 225, y: 240 });
+    for (let i = 0; i < 100; i++) {
+      ai.update([fish], 200);
+    }
+    expect(fish.y).toBeGreaterThanOrEqual(60);
+    expect(fish.y).toBeLessThanOrEqual(480 - 32);
+  });
 });

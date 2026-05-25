@@ -25,6 +25,11 @@ export interface FishAIOptions {
   tankHeight: number;
   /** Px from each edge that fish cannot enter. Default 32. */
   margin?: number;
+  /**
+   * Optional upper swim bound (px from the top). Keeps fish below the waterline.
+   * Omitted -> fish may rise to `margin`, preserving the original behavior.
+   */
+  surfaceTop?: number;
   /** Inject a deterministic RNG for tests. Defaults to Math.random. */
   rng?: () => number;
 }
@@ -47,6 +52,7 @@ export class FishAI {
   private readonly width: number;
   private readonly height: number;
   private readonly margin: number;
+  private readonly surfaceTop?: number;
   private readonly rng: () => number;
   private readonly states = new Map<string, AIState>();
   private elapsedMs = 0;
@@ -55,12 +61,18 @@ export class FishAI {
     this.width = opts.tankWidth;
     this.height = opts.tankHeight;
     this.margin = opts.margin ?? DEFAULT_MARGIN;
+    this.surfaceTop = opts.surfaceTop;
     this.rng = opts.rng ?? Math.random;
   }
 
   update(fish: DisplayFish[], dt: number): void {
     this.elapsedMs += dt;
-    const bounds: Bounds = { width: this.width, height: this.height, margin: this.margin };
+    const bounds: Bounds = {
+      width: this.width,
+      height: this.height,
+      margin: this.margin,
+      top: this.surfaceTop,
+    };
 
     // --- Pass 1: solo-move every fish (WS1 per-archetype dispatch) ---
     for (const f of fish) {

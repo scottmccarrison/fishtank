@@ -530,3 +530,29 @@ describe('flee', () => {
     expect(result).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// clampY waterline inset (Bounds.top)
+// ---------------------------------------------------------------------------
+describe('clampY top inset (waterline)', () => {
+  const TOP_BOUNDS: Bounds = { width: 450, height: 480, margin: 32, top: 60 };
+
+  it('keeps a swimmer below bounds.top when set', () => {
+    const fish = makeFish({ y: 10 }); // start above the waterline
+    const state = makeState();
+    for (let i = 0; i < 200; i++) {
+      moveCruiser(fish, state, 200, i * 200, TOP_BOUNDS, stableRng);
+      expect(fish.y).toBeGreaterThanOrEqual(60);
+      expect(fish.y).toBeLessThanOrEqual(TOP_BOUNDS.height - TOP_BOUNDS.margin);
+    }
+  });
+
+  it('falls back to margin as the top bound when top is omitted', () => {
+    const fish = makeFish({ y: 10 });
+    const state = makeState();
+    moveCruiser(fish, state, 200, 0, DEFAULT_BOUNDS, stableRng);
+    // No top inset -> the original margin bound (32) applies, not 60.
+    expect(fish.y).toBeGreaterThanOrEqual(DEFAULT_BOUNDS.margin);
+    expect(fish.y).toBeLessThan(60);
+  });
+});

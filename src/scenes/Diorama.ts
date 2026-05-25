@@ -5,6 +5,7 @@ import { BIOMES } from '../data/biomes.js';
 import { FishAI } from '../sim/FishAI.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
 import { createTankFloor, TANK_FLOOR_HEIGHT } from '../ui/TankFloor.js';
+import { createTankGlass } from '../ui/TankGlass.js';
 import type { DisplayFish } from '../types/Fish.js';
 import type { SaveStateV2, BiomeTankState } from '../types/Save.js';
 
@@ -84,6 +85,8 @@ export function createDiorama(
   const backdrop: GradientBackdrop = createGradientBackdrop(scene, initialBiome);
   // Floor is confined to diorama region via the floorBottomY parameter
   createTankFloor(scene, CONSTANTS.DIORAMA_HEIGHT);
+  // Glass frame + waterline overlay so the diorama reads as a contained tank.
+  const glass = createTankGlass(scene);
 
   function ensureBiomeRender(biomeId: string): BiomeRenderState {
     const existing = biomeRender.get(biomeId);
@@ -95,6 +98,8 @@ export function createDiorama(
     const ai = new FishAI({
       tankWidth: CONSTANTS.CANVAS_WIDTH,
       tankHeight: CONSTANTS.DIORAMA_HEIGHT,
+      // Keep fish below the waterline (a touch below the shimmer so they don't clip it).
+      surfaceTop: CONSTANTS.WATER_SURFACE_Y + 12,
     });
 
     const state: BiomeRenderState = { container, fishSprites, decoSprites, ai };
@@ -122,9 +127,10 @@ export function createDiorama(
       return;
     }
 
-    // Random position within diorama bounds
+    // Random position within diorama bounds, below the waterline.
     const x = 40 + Math.random() * (CONSTANTS.CANVAS_WIDTH - 80);
-    const y = 40 + Math.random() * (CONSTANTS.DIORAMA_HEIGHT - 80);
+    const yMin = CONSTANTS.WATER_SURFACE_Y + 16;
+    const y = yMin + Math.random() * (CONSTANTS.DIORAMA_HEIGHT - yMin - 40);
     const direction: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
 
     const df: DisplayFish = { speciesId, x, y, direction, behaviorType: species.behaviorType };
@@ -230,6 +236,7 @@ export function createDiorama(
 
     destroy(): void {
       backdrop.destroy();
+      glass.destroy();
       for (const render of biomeRender.values()) {
         render.container.destroy(true);
       }
