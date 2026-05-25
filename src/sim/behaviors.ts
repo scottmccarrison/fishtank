@@ -287,6 +287,10 @@ export function moveAmbusher(
       state.dartVx = 0;
       state.dartVy = 0;
     }
+    // Contain the dart to the floor band: startDart (and flee) can produce a
+    // downward dartVy that would otherwise sink the flounder below the sand,
+    // or an upward one that leaps it out of the band.
+    clampToBand(fish, bounds);
   } else {
     // Resting on the sand - snap back and maybe start a dart
     snapToFloor(fish, bounds);

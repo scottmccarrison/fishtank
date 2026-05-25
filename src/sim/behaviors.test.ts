@@ -215,6 +215,17 @@ describe('moveAmbusher', () => {
       expect(fish.x).toBeLessThanOrEqual(DEFAULT_BOUNDS.width - DEFAULT_BOUNDS.margin);
     }
   });
+
+  it('contains a downward dart to the floor band (never sinks below the sand)', () => {
+    const fish = makeFish({ x: 225, y: floorY, direction: 1, behaviorType: 'ambusher' });
+    // Force a max downward dart (positive dartVy); without the band clamp this
+    // would push the flounder below floorY and off the sand.
+    const state = makeState({ dartMs: 800, dartVy: 80 });
+    for (let i = 0; i < 60; i++) {
+      moveAmbusher(fish, state, 16, i * 16, DEFAULT_BOUNDS, stableRng);
+      expect(fish.y).toBeLessThanOrEqual(floorY);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
