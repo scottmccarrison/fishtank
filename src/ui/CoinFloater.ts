@@ -9,6 +9,13 @@ export interface CoinFloater {
 const FLOATER_LIFETIME_MS = 1200;
 const FLOATER_RISE_PX = 30;
 const FLOATER_DEPTH = 50;
+/**
+ * Minimum gap between floaters for a single species. Fast earners would otherwise
+ * cross one whole coin every frame and emit a constant "+1" stream; instead they
+ * accumulate and emit a batched "+N" at most ~once per this interval. Slow earners
+ * (already < 1 coin/sec) are unaffected. Tunable.
+ */
+const MIN_FLOATER_INTERVAL_MS = 900;
 
 /**
  * Per-species floating "+N" coin animations. Each display-fish sprite has its own
@@ -22,6 +29,9 @@ const FLOATER_DEPTH = 50;
  */
 export function createCoinFloater(scene: Phaser.Scene): CoinFloater {
   const accumulators = new Map<string, number>();
+  // Per-species timestamp (in elapsedMs) of the last floater spawned, for throttling.
+  const lastSpawn = new Map<string, number>();
+  let elapsedMs = 0;
 
   const style: Phaser.Types.GameObjects.Text.TextStyle = {
     fontSize: '14px',
@@ -49,19 +59,28 @@ export function createCoinFloater(scene: Phaser.Scene): CoinFloater {
   return {
     update(fish, delta) {
       const dtSec = delta / 1000;
+      elapsedMs += delta;
       const liveIds = new Set(fish.map((f) => f.speciesId));
       for (const id of accumulators.keys()) {
         if (!liveIds.has(id)) accumulators.delete(id);
+      }
+      for (const id of lastSpawn.keys()) {
+        if (!liveIds.has(id)) lastSpawn.delete(id);
       }
 
       for (const f of fish) {
         const rate = speciesEarnRate(f.speciesId);
         if (rate <= 0) continue;
         const acc = (accumulators.get(f.speciesId) ?? 0) + rate * dtSec;
-        if (acc >= 1) {
+        const sinceLast = elapsedMs - (lastSpawn.get(f.speciesId) ?? -Infinity);
+        // Spawn only when a whole coin has accrued AND the throttle interval has
+        // elapsed. Otherwise keep accumulating so the next floater shows the batched
+        // total (a fast fish shows "+40" once, not "+1" every frame).
+        if (acc >= 1 && sinceLast >= MIN_FLOATER_INTERVAL_MS) {
           const whole = Math.floor(acc);
           spawn(f.x, f.y, whole);
           accumulators.set(f.speciesId, acc - whole);
+          lastSpawn.set(f.speciesId, elapsedMs);
         } else {
           accumulators.set(f.speciesId, acc);
         }
