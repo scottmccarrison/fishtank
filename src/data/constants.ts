@@ -48,6 +48,13 @@ export const CONSTANTS = {
   LEDGER_HEIGHT: 320,
   /** Fish/decoration sprite scale (promoted from TankScene; WS2/WS3 read it). */
   RENDER_SCALE_MULTIPLIER: 3,
+  /**
+   * Decoration sprites render at this uniform scale. Brysia decoration art has
+   * varied native sizes (16-80px), so a single multiplier preserves the artist's
+   * relative proportions (castle big, shell small) while reading well next to the
+   * fish (which use RENDER_SCALE_MULTIPLIER).
+   */
+  DECORATION_RENDER_SCALE: 2,
 } as const;
 
 /** Type alias for the constants object - allows precise typing of consumers. */

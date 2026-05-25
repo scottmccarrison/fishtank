@@ -151,8 +151,9 @@ export function createDiorama(
       // Deterministic floor position - evenly spread across width
       const x = (CONSTANTS.CANVAS_WIDTH / (n + 1)) * (index + 1);
       const sprite = scene.add.image(x, 0, decoId);
+      sprite.setScale(CONSTANTS.DECORATION_RENDER_SCALE);
       sprite.setDepth(-5);
-      // Position y at floor - sprite needs display height to compute floor center
+      // Position y at floor - displayHeight is post-scale so the sprite sits on the sand
       const floorY =
         CONSTANTS.DIORAMA_HEIGHT - TANK_FLOOR_HEIGHT - sprite.displayHeight / 2;
       sprite.setY(floorY);

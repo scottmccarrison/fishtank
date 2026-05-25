@@ -6,3 +6,8 @@ dist/
 .vscode/
 .idea/
 *.log
+
+# Brysia "Fishtank" paid asset pack - license forbids redistributing the
+# separate images, so they stay out of the public repo (kept local + served
+# from the deploy only). See CREDITS.md for how to obtain them.
+public/assets/brysia/
