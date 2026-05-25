@@ -9,17 +9,39 @@ export interface GradientBackdrop {
 
 const BACKDROP_DEPTH = -100;
 const TRANSITION_MS = 1500;
+// Phaser.BlendModes.ADD = 1 (numeric literal avoids a runtime Phaser import
+// that would trigger canvas detection in jsdom during tests).
+const BLEND_ADD = 1;
 
 /**
  * Vertical gradient background. Uses Phaser.GameObjects.Graphics with a
  * 4-corner fillGradientStyle (top corners = gradientFrom, bottom corners = gradientTo).
  * transitionTo crossfades a new graphics over the old, then destroys the old.
+ *
+ * Also renders a single static additive water-texture TileSprite at depth -99
+ * (above the gradient, below the floor at -90) for a subtle wavy-water feel.
+ * The overlay is biome-independent and is not changed during transitionTo.
  */
 export function createGradientBackdrop(
   scene: Phaser.Scene,
   initialBiome: Biome,
 ): GradientBackdrop {
   let current = makeBackdrop(scene, initialBiome);
+
+  // Static wavy-water overlay: created once, sits above the gradient (-100) and
+  // below the floor (-90). ADD blend mode tints highlights without changing hue.
+  const overlay = scene.add
+    .tileSprite(
+      0,
+      CONSTANTS.WATER_SURFACE_Y,
+      scene.scale.width,
+      CONSTANTS.DIORAMA_HEIGHT - CONSTANTS.WATER_SURFACE_Y,
+      'water-texture',
+    )
+    .setOrigin(0, 0)
+    .setDepth(-99);
+  overlay.setBlendMode(BLEND_ADD);
+  overlay.setAlpha(CONSTANTS.WATER_TEXTURE_ALPHA);
 
   function makeBackdrop(s: Phaser.Scene, biome: Biome): Phaser.GameObjects.Graphics {
     const top = parseInt(biome.gradientFrom.replace('#', ''), 16);
@@ -56,6 +78,7 @@ export function createGradientBackdrop(
     },
     destroy() {
       current.destroy();
+      overlay.destroy();
     },
   };
 }

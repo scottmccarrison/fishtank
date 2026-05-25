@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { preloadFishSprites, preloadDecorationSprites } from './SpriteLoader.js';
+import { preloadFishSprites, preloadDecorationSprites, preloadSurfaceAssets } from './SpriteLoader.js';
 import { createDiorama, type Diorama } from './Diorama.js';
 import { createCoinCounter, type CoinCounter } from '../ui/CoinCounter.js';
 import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
@@ -31,6 +31,7 @@ export class TankScene extends Phaser.Scene {
   preload(): void {
     preloadFishSprites(this);
     preloadDecorationSprites(this);
+    preloadSurfaceAssets(this);
   }
 
   create(): void {
