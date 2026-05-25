@@ -37,6 +37,12 @@ export const CONSTANTS = {
   CANVAS_HEIGHT: 800,
   /** Diorama occupies the top ~60%; fish motion is bounded here. */
   DIORAMA_HEIGHT: 480,
+  /**
+   * Y of the waterline. Water (the biome gradient) fills [WATER_SURFACE_Y, DIORAMA_HEIGHT];
+   * the strip above is the air gap / glass top painted by TankGlass. Shared anchor so the
+   * backdrop, the glass overlay, and the fish top-bound all agree.
+   */
+  WATER_SURFACE_Y: 48,
   /** Ledger occupies the bottom ~40%. */
   LEDGER_Y: 480,
   LEDGER_HEIGHT: 320,

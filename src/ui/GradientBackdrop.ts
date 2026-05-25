@@ -26,8 +26,15 @@ export function createGradientBackdrop(
     const bot = parseInt(biome.gradientTo.replace('#', ''), 16);
     const g = s.add.graphics().setDepth(BACKDROP_DEPTH);
     g.fillGradientStyle(top, top, bot, bot, 1);
-    // Confine gradient to the diorama region; the ledger region below is painted separately.
-    g.fillRect(0, 0, s.scale.width, CONSTANTS.DIORAMA_HEIGHT);
+    // Water starts at the waterline, not the canvas top: the strip above
+    // WATER_SURFACE_Y is the air gap painted by TankGlass. The ledger region
+    // below the diorama is painted separately.
+    g.fillRect(
+      0,
+      CONSTANTS.WATER_SURFACE_Y,
+      s.scale.width,
+      CONSTANTS.DIORAMA_HEIGHT - CONSTANTS.WATER_SURFACE_Y,
+    );
     return g;
   }
 
