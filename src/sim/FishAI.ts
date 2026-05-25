@@ -2,7 +2,10 @@ import type { DisplayFish } from '../types/Fish.js';
 import {
   moveCruiser,
   moveSchooler,
-  moveBottomDweller,
+  moveRester,
+  moveWalker,
+  moveGlider,
+  moveAmbusher,
   moveDrifter,
   movePredator,
   cohesion,
@@ -12,6 +15,10 @@ import {
   type AIState,
   type Bounds,
 } from './behaviors.js';
+
+function assertNever(x: never): never {
+  throw new Error('unhandled behaviorType: ' + x);
+}
 
 export interface FishAIOptions {
   tankWidth: number;
@@ -63,8 +70,8 @@ export class FishAI {
         case 'schooler':
           moveSchooler(f, state, dt, this.elapsedMs, bounds, this.rng);
           break;
-        case 'bottom-dweller':
-          moveBottomDweller(f, state, dt, this.elapsedMs, bounds, this.rng);
+        case 'cruiser':
+          moveCruiser(f, state, dt, this.elapsedMs, bounds, this.rng);
           break;
         case 'drifter':
           moveDrifter(f, state, dt, this.elapsedMs, bounds, this.rng);
@@ -72,10 +79,20 @@ export class FishAI {
         case 'predator':
           movePredator(f, state, dt, this.elapsedMs, bounds, this.rng);
           break;
-        case 'cruiser':
-        default:
-          moveCruiser(f, state, dt, this.elapsedMs, bounds, this.rng);
+        case 'rester':
+          moveRester(f, state, dt, this.elapsedMs, bounds, this.rng);
           break;
+        case 'walker':
+          moveWalker(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        case 'glider':
+          moveGlider(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        case 'ambusher':
+          moveAmbusher(f, state, dt, this.elapsedMs, bounds, this.rng);
+          break;
+        default:
+          assertNever(f.behaviorType);
       }
     }
 
@@ -84,6 +101,10 @@ export class FishAI {
     // Compute schooler centroid from post-move positions
     const schoolers = fish.filter(f => f.behaviorType === 'schooler');
     const predators = fish.filter(f => f.behaviorType === 'predator');
+    const floorDwellers = fish.filter(
+      f => f.behaviorType === 'rester' || f.behaviorType === 'walker' ||
+           f.behaviorType === 'glider' || f.behaviorType === 'ambusher',
+    );
 
     let centroid: { x: number; y: number } | null = null;
     if (schoolers.length > 0) {
@@ -114,6 +135,16 @@ export class FishAI {
           cohesion(f, state, { x: othersX, y: othersY });
         }
         separation(f, schoolers);
+      }
+
+      // Floor separation: no cohesion, just push apart. Gated on dartMs <= 0
+      // so separation does not fight an in-progress flee or ambush dart.
+      if (
+        (f.behaviorType === 'rester' || f.behaviorType === 'walker' ||
+         f.behaviorType === 'glider' || f.behaviorType === 'ambusher') &&
+        state.dartMs <= 0
+      ) {
+        separation(f, floorDwellers);
       }
     }
   }

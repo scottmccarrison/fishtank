@@ -13,7 +13,7 @@ export function createInitialState(): SaveStateV2 {
     coinBalance: 0,
     lifetimeEarned: 0,
     tanks: {
-      'tide-pool': { fishCounts: { goldfish: 1 }, decorations: [] },
+      'tide-pool': { fishCounts: { goldfish: 1, 'crab-blue': 1, starfish: 1, seahorse: 1 }, decorations: [] },
       'open-reef':  { fishCounts: {}, decorations: [] },
       'abyss':      { fishCounts: {}, decorations: [] },
     },

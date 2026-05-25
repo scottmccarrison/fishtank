@@ -1,5 +1,7 @@
 /** Behavioral archetype for a fish species - determines solo motion style. */
-export type BehaviorType = 'schooler' | 'cruiser' | 'bottom-dweller' | 'drifter' | 'predator';
+export type BehaviorType =
+  | 'schooler' | 'cruiser' | 'drifter' | 'predator'
+  | 'rester' | 'walker' | 'glider' | 'ambusher';
 
 /** Static definition of a fish species - one entry per unique creature. */
 export interface FishSpecies {

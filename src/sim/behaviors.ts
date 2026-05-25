@@ -15,9 +15,13 @@ export const DART_PROB_PER_SEC = 0.025;  // cruiser dart probability per second
 export const DART_DURATION_MS = 800;     // ms
 export const DART_SPEED = 80;            // px/s
 
-// Bottom-dweller constants
-export const BOTTOM_BAND = 120;          // px - bottom-dwellers live in [DIORAMA_HEIGHT-120, DIORAMA_HEIGHT-margin]
-export const BOTTOM_DRIFT_SPEED = 8;     // px/s - slow horizontal crawl
+// Floor behavior constants
+export const BOTTOM_BAND = 120;          // px - floor species live in [DIORAMA_HEIGHT-120, DIORAMA_HEIGHT-margin]
+export const WALKER_SPEED = 12;          // px/s - walker horizontal scuttle
+export const GLIDER_SPEED = 10;          // px/s - glider horizontal cruise
+export const GLIDER_BOB_AMP = 14;        // px/s - glider vertical undulation amplitude
+export const GLIDER_BOB_PERIOD = 5000;   // ms - glider vertical undulation period
+export const AMBUSHER_DART_PROB = 0.03;  // per second - ambusher dart trigger probability
 
 // Drifter constants
 export const DRIFTER_BOB_AMP = 10;       // px/s - vertical bob velocity amplitude
@@ -34,7 +38,7 @@ export const SCHOOLER_DART_PROB = 0.08;  // per second - twitchier than cruiser
 // Interaction constants (WS2)
 export const COHESION_GAIN = 0.5;    // steer strength toward centroid
 export const COHESION_MAX_V = 6;     // px/s cap on cohesion velocity contribution
-export const SEPARATION_RADIUS = 60; // px; schoolers closer than this push apart
+export const SEPARATION_RADIUS = 90; // px; schoolers/floor-dwellers closer than this push apart
 export const SEPARATION_GAIN = 8;    // push strength (stronger than cohesion so it wins up close)
 export const SEPARATION_MAX_V = 9;   // px cap on the per-tick separation nudge
 export const FLEE_RADIUS = 120;      // px - prey within this distance of a predator flees
@@ -42,6 +46,7 @@ export const FLEE_SPEED = 100;       // px/s flee dart speed
 
 // Diorama dimensions (matches CONSTANTS in data/constants.ts)
 export const DIORAMA_HEIGHT = 480;
+const BAND_TOP = DIORAMA_HEIGHT - BOTTOM_BAND; // 360 - top of floor species band
 
 export interface AIState {
   driftSpeed: number;
@@ -171,12 +176,45 @@ export function moveSchooler(
 }
 
 // ---------------------------------------------------------------------------
-// Archetype: bottom-dweller
-// Confined to [DIORAMA_HEIGHT - BOTTOM_BAND, height - margin].
-// Hard-snap y into band on every tick (replaces generic y clamp).
-// Slow horizontal crawl, no wobble, no dart.
+// Floor helpers: snap to sand line or clamp within the bottom band.
 // ---------------------------------------------------------------------------
-export function moveBottomDweller(
+export function snapToFloor(fish: DisplayFish, bounds: Bounds): void {
+  fish.y = bounds.height - bounds.margin; // 448 with default bounds
+}
+
+export function clampToBand(fish: DisplayFish, bounds: Bounds): void {
+  const floorY = bounds.height - bounds.margin;
+  if (fish.y < BAND_TOP) fish.y = BAND_TOP;
+  if (fish.y > floorY) fish.y = floorY;
+}
+
+// ---------------------------------------------------------------------------
+// Archetype: rester (starfish)
+// Sits on the sand. No horizontal movement, no dart.
+// ---------------------------------------------------------------------------
+export function moveRester(
+  fish: DisplayFish,
+  state: AIState,
+  _dt: number,
+  _elapsedMs: number,
+  bounds: Bounds,
+  _rng: () => number,
+): void {
+  snapToFloor(fish, bounds);
+
+  // No horizontal movement
+  state.dartMs = 0;
+  state.dartVx = 0;
+  state.dartVy = 0;
+
+  bounceX(fish, bounds);
+}
+
+// ---------------------------------------------------------------------------
+// Archetype: walker (crabs, shrimp)
+// Scuttles along the sand at WALKER_SPEED. No dart.
+// ---------------------------------------------------------------------------
+export function moveWalker(
   fish: DisplayFish,
   state: AIState,
   dt: number,
@@ -186,19 +224,80 @@ export function moveBottomDweller(
 ): void {
   const dtSec = dt / 1000;
 
-  // Horizontal crawl only (always drifting, no dart for bottom-dwellers)
-  fish.x += BOTTOM_DRIFT_SPEED * fish.direction * dtSec;
+  fish.x += WALKER_SPEED * fish.direction * dtSec;
+  snapToFloor(fish, bounds);
 
-  // Hard-snap y into bottom band - replaces generic y clamp
-  const bandTop = DIORAMA_HEIGHT - BOTTOM_BAND;
-  const bandBottom = bounds.height - bounds.margin;
-  if (fish.y < bandTop) fish.y = bandTop;
-  if (fish.y > bandBottom) fish.y = bandBottom;
-
-  // Keep dart state clean (bottom-dwellers never dart)
   state.dartMs = 0;
   state.dartVx = 0;
   state.dartVy = 0;
+
+  bounceX(fish, bounds);
+}
+
+// ---------------------------------------------------------------------------
+// Archetype: glider (stingray)
+// Glides horizontally just above the sand with a vertical undulation.
+// Stays within [BAND_TOP, floorY]. No dart.
+// ---------------------------------------------------------------------------
+export function moveGlider(
+  fish: DisplayFish,
+  state: AIState,
+  dt: number,
+  elapsedMs: number,
+  bounds: Bounds,
+  _rng: () => number,
+): void {
+  const dtSec = dt / 1000;
+
+  fish.x += GLIDER_SPEED * fish.direction * dtSec;
+
+  // Vertical undulation using wobblePhase (seeded per fish in ensureState)
+  fish.y += GLIDER_BOB_AMP * Math.sin((2 * Math.PI * elapsedMs) / GLIDER_BOB_PERIOD + state.wobblePhase) * dtSec;
+  clampToBand(fish, bounds);
+
+  state.dartMs = 0;
+  state.dartVx = 0;
+  state.dartVy = 0;
+
+  bounceX(fish, bounds);
+}
+
+// ---------------------------------------------------------------------------
+// Archetype: ambusher (flounder)
+// Rests flat on the sand; occasionally darts, then re-settles.
+// Reuses startDart / DART_DURATION_MS / DART_SPEED from cruiser.
+// ---------------------------------------------------------------------------
+export function moveAmbusher(
+  fish: DisplayFish,
+  state: AIState,
+  dt: number,
+  _elapsedMs: number,
+  bounds: Bounds,
+  rng: () => number,
+): void {
+  const dtSec = dt / 1000;
+
+  if (state.dartMs > 0) {
+    // Active dart - apply velocity and drain timer (same as cruiser dart branch)
+    fish.x += state.dartVx * dtSec;
+    fish.y += state.dartVy * dtSec;
+    state.dartMs -= dt;
+    if (state.dartMs <= 0) {
+      state.dartMs = 0;
+      state.dartVx = 0;
+      state.dartVy = 0;
+    }
+    // Contain the dart to the floor band: startDart (and flee) can produce a
+    // downward dartVy that would otherwise sink the flounder below the sand,
+    // or an upward one that leaps it out of the band.
+    clampToBand(fish, bounds);
+  } else {
+    // Resting on the sand - snap back and maybe start a dart
+    snapToFloor(fish, bounds);
+    if (rng() < AMBUSHER_DART_PROB * dtSec) {
+      startDart(state, fish.direction, rng);
+    }
+  }
 
   bounceX(fish, bounds);
 }
