@@ -7,7 +7,9 @@ import {
   moveSchooler,
   moveCruiser,
   cohesion,
+  separation,
   flee,
+  SEPARATION_RADIUS,
   BOTTOM_BAND,
   DIORAMA_HEIGHT,
   DRIFT_SPEED,
@@ -271,6 +273,41 @@ describe('cohesion', () => {
 // ---------------------------------------------------------------------------
 // WS2: flee
 // ---------------------------------------------------------------------------
+describe('separation', () => {
+  it('pushes a schooler away from a nearby same-archetype neighbor', () => {
+    // a is left of b; separation should push a further left (away from b)
+    const a = makeFish({ speciesId: 'goldfish', x: 200, y: 240, behaviorType: 'schooler' });
+    const b = makeFish({ speciesId: 'guppy', x: 210, y: 240, behaviorType: 'schooler' });
+    const ax = a.x;
+    separation(a, [a, b]);
+    expect(a.x).toBeLessThan(ax);
+  });
+
+  it('unstacks exactly-superimposed fish in opposite directions (speciesId tie-break)', () => {
+    const a = makeFish({ speciesId: 'goldfish', x: 200, y: 240, behaviorType: 'schooler' });
+    const b = makeFish({ speciesId: 'neon-tetra', x: 200, y: 240, behaviorType: 'schooler' });
+    separation(a, [a, b]);
+    separation(b, [a, b]);
+    // goldfish < neon-tetra: a pushes +x, b pushes -x - they no longer overlap
+    expect(a.x).not.toBe(b.x);
+  });
+
+  it('is a no-op when the other schooler is beyond SEPARATION_RADIUS', () => {
+    const a = makeFish({ speciesId: 'goldfish', x: 50, y: 240, behaviorType: 'schooler' });
+    const far = makeFish({ speciesId: 'guppy', x: 50 + SEPARATION_RADIUS + 10, y: 240, behaviorType: 'schooler' });
+    const ax = a.x;
+    separation(a, [a, far]);
+    expect(a.x).toBe(ax);
+  });
+
+  it('is a no-op with no neighbors', () => {
+    const a = makeFish({ x: 100, y: 240, behaviorType: 'schooler' });
+    const ax = a.x;
+    separation(a, [a]);
+    expect(a.x).toBe(ax);
+  });
+});
+
 describe('flee', () => {
   it('pushes prey AWAY from a nearby predator on the x-axis', () => {
     // Predator to the left of prey - prey should flee right (dartVx > 0)

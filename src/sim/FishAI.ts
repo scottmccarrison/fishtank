@@ -6,6 +6,7 @@ import {
   moveDrifter,
   movePredator,
   cohesion,
+  separation,
   flee,
   DRIFT_SPEED,
   type AIState,
@@ -103,12 +104,16 @@ export class FishAI {
         flee(f, state, predators);
       }
 
-      // Cohesion: schoolers only, skip if already darting/fleeing
-      if (f.behaviorType === 'schooler' && state.dartMs <= 0 && centroid !== null && schoolers.length > 1) {
-        // Compute centroid excluding this fish
-        const othersX = (centroid.x * schoolers.length - f.x) / (schoolers.length - 1);
-        const othersY = (centroid.y * schoolers.length - f.y) / (schoolers.length - 1);
-        cohesion(f, state, { x: othersX, y: othersY });
+      // Cohesion + separation: schoolers only, skip if already darting/fleeing.
+      // Cohesion pulls toward the group; separation keeps spacing so they do not
+      // collapse onto one point and superimpose.
+      if (f.behaviorType === 'schooler' && state.dartMs <= 0) {
+        if (centroid !== null && schoolers.length > 1) {
+          const othersX = (centroid.x * schoolers.length - f.x) / (schoolers.length - 1);
+          const othersY = (centroid.y * schoolers.length - f.y) / (schoolers.length - 1);
+          cohesion(f, state, { x: othersX, y: othersY });
+        }
+        separation(f, schoolers);
       }
     }
   }
