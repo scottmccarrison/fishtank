@@ -12,9 +12,9 @@ vi.mock('../state.js', () => ({ getState: vi.fn(), setState: vi.fn() }));
 vi.mock('../save/Serializer.js', () => ({ serialize: vi.fn(), deserialize: vi.fn() }));
 
 function validState(overrides: Partial<SaveStateV2> = {}): SaveStateV2 {
-  const tanks: Record<string, { fishCounts: Record<string, number>; decorations: string[] }> = {};
+  const tanks: Record<string, { fishCounts: Record<string, number>; slotTiers: Record<string, number> }> = {};
   for (const b of BIOMES) {
-    tanks[b.id] = { fishCounts: {}, decorations: [] };
+    tanks[b.id] = { fishCounts: {}, slotTiers: {} };
   }
   return {
     version: 2,
@@ -62,17 +62,30 @@ describe('isPlausibleSaveState', () => {
     expect(isPlausibleSaveState(s)).toBe(false);
   });
 
-  it('rejects null in decorations array', () => {
+  it('accepts a save with slotTiers present and valid', () => {
+    const s = validState();
+    s.tanks[BIOMES[0]!.id]!.slotTiers['greenery'] = 2;
+    expect(isPlausibleSaveState(s)).toBe(true);
+  });
+
+  it('rejects a save with non-number slotTier value', () => {
     const s = validState();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (s.tanks[BIOMES[0]!.id]!.decorations as any[]).push(null);
+    (s.tanks[BIOMES[0]!.id]!.slotTiers as any)['greenery'] = 'bad';
     expect(isPlausibleSaveState(s)).toBe(false);
   });
 
-  it('rejects non-string in decorations array', () => {
+  it('rejects a save where slotTiers is an array', () => {
     const s = validState();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (s.tanks[BIOMES[0]!.id]!.decorations as any[]).push(42);
+    (s.tanks[BIOMES[0]!.id] as any).slotTiers = [1, 2, 3];
     expect(isPlausibleSaveState(s)).toBe(false);
+  });
+
+  it('accepts a save with slotTiers absent (old save compatibility)', () => {
+    const s = validState();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (s.tanks[BIOMES[0]!.id] as any).slotTiers;
+    expect(isPlausibleSaveState(s)).toBe(true);
   });
 });

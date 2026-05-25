@@ -70,10 +70,13 @@ export function isPlausibleSaveState(s: SaveStateV2): boolean {
     for (const count of Object.values(tank.fishCounts)) {
       if (!Number.isFinite(count) || count < 0) return false;
     }
-    if (!Array.isArray(tank.decorations)) return false;
-    for (const d of tank.decorations) {
-      // Reject null, numbers, objects - only plain strings are valid decoration ids.
-      if (typeof d !== 'string') return false;
+    // slotTiers is optional (old saves without it are still valid - treated as {}).
+    // When present it must be a non-null object with all-number values.
+    if (tank.slotTiers !== undefined && tank.slotTiers !== null) {
+      if (typeof tank.slotTiers !== 'object' || Array.isArray(tank.slotTiers)) return false;
+      for (const tier of Object.values(tank.slotTiers)) {
+        if (typeof tier !== 'number') return false;
+      }
     }
   }
   return true;

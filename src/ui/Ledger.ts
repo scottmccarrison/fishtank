@@ -2,15 +2,16 @@ import type Phaser from 'phaser';
 import type { SaveStateV2 } from '../types/Save.js';
 import { BIOMES } from '../data/biomes.js';
 import { FISH_SPECIES } from '../data/fish.js';
-import { DECORATIONS } from '../data/decorations.js';
+import { DECORATION_BY_ID } from '../data/decorations.js';
+import { DECORATION_SLOTS } from '../data/decorationSlots.js';
 import { CONSTANTS } from '../data/constants.js';
 import { fishCost } from '../util/fishCost.js';
 import { formatCoins } from '../util/formatCoins.js';
 import { purchaseFish } from '../sim/PurchaseFish.js';
-import { purchaseDecoration } from '../sim/PurchaseDecoration.js';
+import { upgradeSlot } from '../sim/UpgradeSlot.js';
 import { isBiomeUnlocked } from '../util/biomeUnlock.js';
 
-/** Shop mode: fish list vs decoration list (per-biome Fish/Decor toggle). */
+/** Shop mode: fish list vs decoration slot list (per-biome Fish/Decor toggle). */
 export type ShopMode = 'fish' | 'decor';
 
 // ---------------------------------------------------------------------------
@@ -58,14 +59,24 @@ export function rowsForBiome(biomeId: string): RowData[] {
   });
 }
 
+export interface SlotRowData {
+  slotId: string;
+  name: string;
+  tierCount: number;
+  tierCosts: number[];
+}
+
 /**
- * Rows for the Decor tab - one entry per decoration. Decorations are a single
- * global catalog (DECORATIONS); ownership is tracked per-biome in the save, so
- * the same catalog is shown for every biome and the BUY targets the active biome.
- * `speciesId` here is the decoration id (RowData is shared between fish and decor).
+ * Returns one row per decoration slot (6 total) for the Decor tab.
+ * tierCosts[i] = cost to upgrade into tier i+1 (i.e. the cost of tiers[i]).
  */
-export function rowsForDecorations(): RowData[] {
-  return DECORATIONS.map((d) => ({ speciesId: d.id, cost: d.cost }));
+export function rowsForSlots(): SlotRowData[] {
+  return DECORATION_SLOTS.map((slot) => ({
+    slotId: slot.id,
+    name: slot.name,
+    tierCount: slot.tiers.length,
+    tierCosts: slot.tiers.map((decoId) => DECORATION_BY_ID.get(decoId)!.cost),
+  }));
 }
 
 /**
@@ -124,10 +135,16 @@ interface RowUI {
   cost: number;
   lastAffordable: boolean | null;
   lastCount: number;
-  /** True for decoration rows (BUY -> purchaseDecoration, Owned state, no mystery). */
+  /** True for decoration slot rows (UPGRADE -> upgradeSlot; Owned state handled per-slot). */
   isDecor: boolean;
-  /** Decor only: last-seen ownership in the active biome (drives BUY <-> Owned). */
-  lastOwned: boolean | null;
+  /** Slot rows only: the slot id this row represents. */
+  slotId?: string;
+  /** Slot rows only: all tier costs for this slot. */
+  tierCosts?: number[];
+  /** Slot rows only: total number of tiers. */
+  tierCount?: number;
+  /** Slot rows only: last-seen tier for this slot in the active biome (drives icon/label/button). */
+  lastTier?: number;
 }
 
 interface TabUI {
@@ -289,8 +306,11 @@ export function createLedger(
     scrollMask = null;
     rowUIs = [];
 
-    const rows = mode === 'fish' ? rowsForBiome(biomeId) : rowsForDecorations();
-    const contentHeight = rows.length * ROW_H;
+    const isDecor = mode === 'decor';
+    const slotRows = isDecor ? rowsForSlots() : null;
+    const fishRows = isDecor ? null : rowsForBiome(biomeId);
+    const rowCount = isDecor ? slotRows!.length : fishRows!.length;
+    const contentHeight = rowCount * ROW_H;
 
     // Drag-scroll hit-zone FIRST, behind the rows. Phaser input is topOnly, so
     // if this transparent zone sat above the rows it would swallow every BUY
@@ -340,130 +360,219 @@ export function createLedger(
     };
     scene.input.on('wheel', onWheel);
 
-    // Build row game objects
-    const isDecor = mode === 'decor';
-    rows.forEach((row, idx) => {
-      // Resolve the catalog entry for this row (fish or decoration).
-      const species = isDecor ? undefined : FISH_SPECIES.find((s) => s.id === row.speciesId);
-      const deco = isDecor ? DECORATIONS.find((d) => d.id === row.speciesId) : undefined;
-      if (!isDecor && !species) return;
-      if (isDecor && !deco) return;
-      const displayName = isDecor ? deco!.name : species!.name;
-
-      // Row y in local (scrollContainer) coordinates - scrollContainer.y starts at LIST_Y,
-      // so local origin is at LIST_Y; row top = idx * ROW_H
-      const rowLocalY = idx * ROW_H;
-
-      const rowContainer = scene.add.container(0, 0);
-
-      // Row background
-      const rowBg = scene.add.rectangle(
-        LEDGER_X + ROW_W / 2 + 10,
-        rowLocalY + ROW_H / 2,
-        ROW_W,
-        ROW_H - 4,
-        0x0d2040,
-      );
-      rowBg.setStrokeStyle(1, 0x224466);
-      rowContainer.add(rowBg);
-
-      // Ownership: fish use count > 0 (silhouette + "???" until bought); decor use
-      // the per-biome decorations[] list and are shown by name immediately.
+    if (isDecor) {
+      // -----------------------------------------------------------------------
+      // Decor mode: 6 slot UPGRADE rows
+      // -----------------------------------------------------------------------
       const state = getState();
-      const tank = state.tanks[biomeId];
-      const count = isDecor ? 0 : (tank?.fishCounts[row.speciesId] ?? 0);
-      const owned = isDecor ? (tank?.decorations.includes(row.speciesId) ?? false) : count > 0;
+      slotRows!.forEach((slotRow, idx) => {
+        const rowLocalY = idx * ROW_H;
+        const currentTier = state.tanks[biomeId]?.slotTiers?.[slotRow.slotId] ?? 0;
+        const isMaxed = currentTier >= slotRow.tierCount;
+        const upgradeCost = isMaxed ? 0 : slotRow.tierCosts[currentTier]!;
+        const canAfford = !isMaxed && state.coinBalance >= upgradeCost;
 
-      // Icon. Fish: native scale * 1.5, silhouetted while unowned. Decor: scaled to
-      // fit a ~40px slot (decoration art ranges 16-80px native), shown normally.
-      const icon = scene.add.image(LEDGER_X + 36, rowLocalY + ROW_H / 2, row.speciesId);
-      if (isDecor) {
-        icon.setScale(40 / Math.max(icon.width, icon.height));
-      } else {
-        icon.setScale(species!.scale * 1.5);
-        if (!owned) icon.setTintFill(SILHOUETTE_TINT);
-      }
-      rowContainer.add(icon);
+        const rowContainer = scene.add.container(0, 0);
 
-      // Name (+ count for fish). Decor shows its name; "???" never applies.
-      const countText = scene.add
-        .text(
-          LEDGER_X + 72,
-          rowLocalY + ROW_H / 2 - 10,
-          isDecor ? displayName : rowLabel(displayName, count),
-          {
+        // Row background
+        const rowBg = scene.add.rectangle(
+          LEDGER_X + ROW_W / 2 + 10,
+          rowLocalY + ROW_H / 2,
+          ROW_W,
+          ROW_H - 4,
+          0x0d2040,
+        );
+        rowBg.setStrokeStyle(1, 0x224466);
+        rowContainer.add(rowBg);
+
+        // Icon: current tier's decoration sprite, or dim placeholder at tier 0.
+        const iconKey = currentTier > 0
+          ? DECORATION_SLOTS.find((s) => s.id === slotRow.slotId)!.tiers[currentTier - 1]!
+          : DECORATION_SLOTS.find((s) => s.id === slotRow.slotId)!.tiers[0]!;
+        const icon = scene.add.image(LEDGER_X + 36, rowLocalY + ROW_H / 2, iconKey);
+        icon.setScale(40 / Math.max(icon.width || 1, icon.height || 1));
+        if (currentTier === 0) {
+          icon.setTintFill(SILHOUETTE_TINT);
+          icon.setAlpha(0.4);
+        }
+        rowContainer.add(icon);
+
+        // Label: "SlotName  tier/max"
+        const countText = scene.add
+          .text(
+            LEDGER_X + 72,
+            rowLocalY + ROW_H / 2 - 10,
+            `${slotRow.name}  ${currentTier}/${slotRow.tierCount}`,
+            {
+              fontSize: '13px',
+              color: '#ffffff',
+              fontFamily: 'monospace',
+              stroke: '#000000',
+              strokeThickness: 2,
+            },
+          )
+          .setOrigin(0, 0.5);
+        rowContainer.add(countText);
+
+        // Cost text (shows next tier cost or blank when maxed)
+        const costText = scene.add
+          .text(
+            LEDGER_X + 72,
+            rowLocalY + ROW_H / 2 + 10,
+            isMaxed ? '' : `${formatCoins(upgradeCost)} c`,
+            {
+              fontSize: '11px',
+              color: '#ffe066',
+              fontFamily: 'monospace',
+            },
+          )
+          .setOrigin(0, 0.5);
+        rowContainer.add(costText);
+
+        // UPGRADE / MAX button
+        const btnLabel = isMaxed ? 'MAX' : `UPGRADE  ${formatCoins(upgradeCost)}c`;
+        const buyBtn = scene.add
+          .text(LEDGER_X + ROW_W - 10, rowLocalY + ROW_H / 2, btnLabel, {
             fontSize: '13px',
-            color: '#ffffff',
+            color: isMaxed ? '#9ccc9c' : canAfford ? '#ffffff' : '#777777',
             fontFamily: 'monospace',
-            stroke: '#000000',
-            strokeThickness: 2,
-          },
-        )
-        .setOrigin(0, 0.5);
-      rowContainer.add(countText);
+            backgroundColor: isMaxed ? '#2a2a2a' : canAfford ? '#2e7d32' : '#3a3a3a',
+            padding: { x: 8, y: 4 },
+          })
+          .setOrigin(1, 0.5);
+        if (!isMaxed) buyBtn.setInteractive({ useHandCursor: true });
 
-      // Cost text
-      const costText = scene.add
-        .text(LEDGER_X + 72, rowLocalY + ROW_H / 2 + 10, `${formatCoins(row.cost)} c`, {
-          fontSize: '11px',
-          color: '#ffe066',
-          fontFamily: 'monospace',
-        })
-        .setOrigin(0, 0.5);
-      rowContainer.add(costText);
+        buyBtn.on('pointerdown', () => {
+          // Reject taps on buttons scrolled outside the visible list viewport.
+          const rowAbsoluteY = (scrollContainer ? scrollContainer.y : LIST_Y) + rowLocalY + ROW_H / 2;
+          if (rowAbsoluteY < LIST_Y || rowAbsoluteY > LIST_Y + LIST_H) return;
 
-      // BUY / Owned button. An already-owned decoration shows a non-interactive
-      // "Owned" chip; everything else shows BUY colored by affordability.
-      const canAfford = state.coinBalance >= row.cost;
-      const showOwned = isDecor && owned;
-      const buyBtn = scene.add
-        .text(LEDGER_X + ROW_W - 10, rowLocalY + ROW_H / 2, showOwned ? 'Owned' : 'BUY', {
-          fontSize: '14px',
-          color: showOwned ? '#9ccc9c' : canAfford ? '#ffffff' : '#777777',
-          fontFamily: 'monospace',
-          backgroundColor: showOwned ? '#2a2a2a' : canAfford ? '#2e7d32' : '#3a3a3a',
-          padding: { x: 8, y: 4 },
-        })
-        .setOrigin(1, 0.5);
-      if (!showOwned) buyBtn.setInteractive({ useHandCursor: true });
-
-      buyBtn.on('pointerdown', () => {
-        // Reject taps on buttons scrolled outside the visible list viewport.
-        // Geometry masks clip visuals only - Phaser does not clip input.
-        const rowAbsoluteY = (scrollContainer ? scrollContainer.y : LIST_Y) + rowLocalY + ROW_H / 2;
-        // LIST_Y already includes the tab + toggle rows; do not add them again.
-        if (rowAbsoluteY < LIST_Y || rowAbsoluteY > LIST_Y + LIST_H) return;
-
-        if (isDecor) {
-          const result = purchaseDecoration(row.speciesId, activeBiomeId);
+          const result = upgradeSlot(slotRow.slotId, activeBiomeId);
           if (!result.success && import.meta.env?.DEV) {
-            console.log('[ledger] decor buy failed:', result.reason);
+            console.log('[ledger] slot upgrade failed:', result.reason);
           }
-        } else {
+        });
+
+        rowContainer.add(buyBtn);
+        scrollContainer!.add(rowContainer);
+
+        rowUIs.push({
+          container: rowContainer,
+          icon,
+          countText,
+          buyBtn,
+          speciesId: slotRow.slotId,
+          speciesName: slotRow.name,
+          cost: upgradeCost,
+          lastAffordable: canAfford,
+          lastCount: 0,
+          isDecor: true,
+          slotId: slotRow.slotId,
+          tierCosts: slotRow.tierCosts,
+          tierCount: slotRow.tierCount,
+          lastTier: currentTier,
+        });
+      });
+    } else {
+      // -----------------------------------------------------------------------
+      // Fish mode: one row per species (unchanged from before)
+      // -----------------------------------------------------------------------
+      fishRows!.forEach((row, idx) => {
+        const species = FISH_SPECIES.find((s) => s.id === row.speciesId);
+        if (!species) return;
+
+        const rowLocalY = idx * ROW_H;
+        const state = getState();
+        const tank = state.tanks[biomeId];
+        const count = tank?.fishCounts[row.speciesId] ?? 0;
+        const owned = count > 0;
+
+        const rowContainer = scene.add.container(0, 0);
+
+        // Row background
+        const rowBg = scene.add.rectangle(
+          LEDGER_X + ROW_W / 2 + 10,
+          rowLocalY + ROW_H / 2,
+          ROW_W,
+          ROW_H - 4,
+          0x0d2040,
+        );
+        rowBg.setStrokeStyle(1, 0x224466);
+        rowContainer.add(rowBg);
+
+        // Icon: native scale * 1.5, silhouetted while unowned
+        const icon = scene.add.image(LEDGER_X + 36, rowLocalY + ROW_H / 2, row.speciesId);
+        icon.setScale(species.scale * 1.5);
+        if (!owned) icon.setTintFill(SILHOUETTE_TINT);
+        rowContainer.add(icon);
+
+        // Name + count ("???" while unowned)
+        const countText = scene.add
+          .text(
+            LEDGER_X + 72,
+            rowLocalY + ROW_H / 2 - 10,
+            rowLabel(species.name, count),
+            {
+              fontSize: '13px',
+              color: '#ffffff',
+              fontFamily: 'monospace',
+              stroke: '#000000',
+              strokeThickness: 2,
+            },
+          )
+          .setOrigin(0, 0.5);
+        rowContainer.add(countText);
+
+        // Cost text
+        const costText = scene.add
+          .text(LEDGER_X + 72, rowLocalY + ROW_H / 2 + 10, `${formatCoins(row.cost)} c`, {
+            fontSize: '11px',
+            color: '#ffe066',
+            fontFamily: 'monospace',
+          })
+          .setOrigin(0, 0.5);
+        rowContainer.add(costText);
+
+        const canAfford = state.coinBalance >= row.cost;
+        const buyBtn = scene.add
+          .text(LEDGER_X + ROW_W - 10, rowLocalY + ROW_H / 2, 'BUY', {
+            fontSize: '14px',
+            color: canAfford ? '#ffffff' : '#777777',
+            fontFamily: 'monospace',
+            backgroundColor: canAfford ? '#2e7d32' : '#3a3a3a',
+            padding: { x: 8, y: 4 },
+          })
+          .setOrigin(1, 0.5)
+          .setInteractive({ useHandCursor: true });
+
+        buyBtn.on('pointerdown', () => {
+          const rowAbsoluteY = (scrollContainer ? scrollContainer.y : LIST_Y) + rowLocalY + ROW_H / 2;
+          if (rowAbsoluteY < LIST_Y || rowAbsoluteY > LIST_Y + LIST_H) return;
+
           const result = purchaseFish(row.speciesId);
           if (!result.success && import.meta.env?.DEV) {
             console.log('[ledger] buy failed:', result.reason);
           }
-        }
-      });
+        });
 
-      rowContainer.add(buyBtn);
-      scrollContainer!.add(rowContainer);
+        rowContainer.add(buyBtn);
+        scrollContainer!.add(rowContainer);
 
-      rowUIs.push({
-        container: rowContainer,
-        icon,
-        countText,
-        buyBtn,
-        speciesId: row.speciesId,
-        speciesName: displayName,
-        cost: row.cost,
-        lastAffordable: canAfford,
-        lastCount: count,
-        isDecor,
-        lastOwned: isDecor ? owned : null,
+        rowUIs.push({
+          container: rowContainer,
+          icon,
+          countText,
+          buyBtn,
+          speciesId: row.speciesId,
+          speciesName: species.name,
+          cost: row.cost,
+          lastAffordable: canAfford,
+          lastCount: count,
+          isDecor: false,
+          lastTier: undefined,
+        });
       });
-    });
+    }
   }
 
   function refreshTabs(): void {
@@ -510,21 +619,48 @@ export function createLedger(
     const tank = state.tanks[activeBiomeId];
 
     for (const row of rowUIs) {
-      if (row.isDecor) {
-        // Decor: flip BUY -> Owned once bought in the active biome (no selling,
-        // so it never flips back). Affordability color applies only while buyable.
-        const nowOwned = tank?.decorations.includes(row.speciesId) ?? false;
-        if (nowOwned !== row.lastOwned) {
-          row.lastOwned = nowOwned;
-          if (nowOwned) {
-            row.buyBtn.setText('Owned');
+      if (row.isDecor && row.slotId !== undefined) {
+        // Slot upgrade row: refresh icon, label, and button when tier changes.
+        const nowTier = tank?.slotTiers?.[row.slotId] ?? 0;
+        const isMaxed = nowTier >= row.tierCount!;
+
+        if (nowTier !== row.lastTier) {
+          row.lastTier = nowTier;
+
+          // Update icon: show tier decoration or dim placeholder at tier 0
+          const slot = DECORATION_SLOTS.find((s) => s.id === row.slotId)!;
+          const iconKey = nowTier > 0 ? slot.tiers[nowTier - 1]! : slot.tiers[0]!;
+          row.icon.setTexture(iconKey);
+          row.icon.setScale(40 / Math.max(row.icon.width || 1, row.icon.height || 1));
+          if (nowTier === 0) {
+            row.icon.setTintFill(SILHOUETTE_TINT);
+            row.icon.setAlpha(0.4);
+          } else {
+            row.icon.clearTint();
+            row.icon.setAlpha(1);
+          }
+
+          // Update label
+          row.countText.setText(`${row.speciesName}  ${nowTier}/${row.tierCount}`);
+
+          // Update button label
+          if (isMaxed) {
+            row.buyBtn.setText('MAX');
             row.buyBtn.setColor('#9ccc9c');
             row.buyBtn.setBackgroundColor('#2a2a2a');
             row.buyBtn.disableInteractive();
+            row.lastAffordable = null;
+          } else {
+            const nextCost = row.tierCosts![nowTier]!;
+            row.cost = nextCost;
+            row.buyBtn.setText(`UPGRADE  ${formatCoins(nextCost)}c`);
+            row.buyBtn.setInteractive({ useHandCursor: true });
           }
         }
-        if (!nowOwned) {
-          const canAfford = balance >= row.cost;
+
+        if (!isMaxed) {
+          const nextCost = row.tierCosts![nowTier]!;
+          const canAfford = balance >= nextCost;
           if (canAfford !== row.lastAffordable) {
             row.lastAffordable = canAfford;
             row.buyBtn.setColor(canAfford ? '#ffffff' : '#777777');
@@ -534,14 +670,14 @@ export function createLedger(
         continue;
       }
 
+      // Fish row
       const newCount = tank?.fishCounts[row.speciesId] ?? 0;
       if (newCount !== row.lastCount) {
         const wasOwned = row.lastCount > 0;
         const nowOwned = newCount > 0;
         row.lastCount = newCount;
         row.countText.setText(rowLabel(row.speciesName, newCount));
-        // Reveal on first purchase (silhouette -> real sprite); re-hide if it
-        // ever returns to 0 (no selling today, but kept consistent).
+        // Reveal on first purchase (silhouette -> real sprite)
         if (nowOwned !== wasOwned) {
           if (nowOwned) row.icon.clearTint();
           else row.icon.setTintFill(SILHOUETTE_TINT);

@@ -12,9 +12,9 @@ const baseState = (lifetimeEarned: number): SaveStateV2 => ({
   coinBalance: 0,
   lifetimeEarned,
   tanks: {
-    'tide-pool': { fishCounts: {}, decorations: [] },
-    'open-reef': { fishCounts: {}, decorations: [] },
-    'abyss': { fishCounts: {}, decorations: [] },
+    'tide-pool': { fishCounts: {}, slotTiers: {} },
+    'open-reef': { fishCounts: {}, slotTiers: {} },
+    'abyss': { fishCounts: {}, slotTiers: {} },
   },
 });
 

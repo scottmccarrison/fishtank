@@ -9,9 +9,9 @@ const stateWithGoldfish = (lastSavedAt: string, count = 1): SaveStateV2 => ({
   coinBalance: 100,
   lifetimeEarned: 100,
   tanks: {
-    'tide-pool': { fishCounts: { goldfish: count }, decorations: [] },
-    'open-reef': { fishCounts: {}, decorations: [] },
-    'abyss': { fishCounts: {}, decorations: [] },
+    'tide-pool': { fishCounts: { goldfish: count }, slotTiers: {} },
+    'open-reef': { fishCounts: {}, slotTiers: {} },
+    'abyss': { fishCounts: {}, slotTiers: {} },
   },
 });
 
@@ -50,9 +50,9 @@ describe('applyCatchup', () => {
       coinBalance: 100,
       lifetimeEarned: 100,
       tanks: {
-        'tide-pool': { fishCounts: {}, decorations: [] },
-        'open-reef': { fishCounts: {}, decorations: [] },
-        'abyss': { fishCounts: {}, decorations: [] },
+        'tide-pool': { fishCounts: {}, slotTiers: {} },
+        'open-reef': { fishCounts: {}, slotTiers: {} },
+        'abyss': { fishCounts: {}, slotTiers: {} },
       },
     };
     const result = applyCatchup(state, new Date('2026-05-22T12:01:00.000Z'));
@@ -81,9 +81,9 @@ describe('applyCatchup', () => {
       coinBalance: 100,
       lifetimeEarned: 100,
       tanks: {
-        'tide-pool': { fishCounts: { 'mystery-fish': 1 }, decorations: [] },
-        'open-reef': { fishCounts: {}, decorations: [] },
-        'abyss': { fishCounts: {}, decorations: [] },
+        'tide-pool': { fishCounts: { 'mystery-fish': 1 }, slotTiers: {} },
+        'open-reef': { fishCounts: {}, slotTiers: {} },
+        'abyss': { fishCounts: {}, slotTiers: {} },
       },
     };
     const result = applyCatchup(state, new Date('2026-05-22T12:01:00.000Z'));

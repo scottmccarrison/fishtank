@@ -9,9 +9,9 @@ const baseState = (overrides: Partial<SaveStateV2> = {}): SaveStateV2 => ({
   coinBalance: 1000,
   lifetimeEarned: 1000,
   tanks: {
-    'tide-pool': { fishCounts: {}, decorations: [] },
-    'open-reef': { fishCounts: {}, decorations: [] },
-    'abyss': { fishCounts: {}, decorations: [] },
+    'tide-pool': { fishCounts: {}, slotTiers: {} },
+    'open-reef': { fishCounts: {}, slotTiers: {} },
+    'abyss': { fishCounts: {}, slotTiers: {} },
   },
   ...overrides,
 });
@@ -73,7 +73,7 @@ describe('purchaseFish', () => {
 
   it('returns tank_missing and does NOT deduct coins when biome tank is absent', () => {
     // State is missing the tide-pool tank where goldfish lives
-    setState(baseState({ tanks: { 'open-reef': { fishCounts: {}, decorations: [] }, 'abyss': { fishCounts: {}, decorations: [] } } }));
+    setState(baseState({ tanks: { 'open-reef': { fishCounts: {}, slotTiers: {} }, 'abyss': { fishCounts: {}, slotTiers: {} } } }));
     const balanceBefore = getState().coinBalance;
     const result = purchaseFish('goldfish');
     expect(result.success).toBe(false);

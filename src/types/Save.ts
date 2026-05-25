@@ -1,8 +1,12 @@
 export interface BiomeTankState {
   /** Owned fish counts in this biome, keyed by speciesId. */
   fishCounts: Record<string, number>;
-  /** Owned decoration species ids in this biome (one of each; cosmetic in A, functional in B). */
-  decorations: string[];
+  /**
+   * Current upgrade tier per decoration slot, keyed by slotId.
+   * 0 (or absent) = empty slot. Absent slots are treated as tier 0 defensively
+   * so old saves without slotTiers still load correctly.
+   */
+  slotTiers: Record<string, number>;
 }
 
 export interface SaveStateV2 {
