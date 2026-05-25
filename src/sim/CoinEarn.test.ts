@@ -10,9 +10,9 @@ const oneGoldfish = (): SaveStateV2 => ({
   coinBalance: 0,
   lifetimeEarned: 0,
   tanks: {
-    'tide-pool': { fishCounts: { goldfish: 1 }, decorations: [] },
-    'open-reef': { fishCounts: {}, decorations: [] },
-    'abyss': { fishCounts: {}, decorations: [] },
+    'tide-pool': { fishCounts: { goldfish: 1 }, slotTiers: {} },
+    'open-reef': { fishCounts: {}, slotTiers: {} },
+    'abyss': { fishCounts: {}, slotTiers: {} },
   },
 });
 
@@ -45,9 +45,9 @@ describe('CoinEarn', () => {
     const state: SaveStateV2 = {
       ...oneGoldfish(),
       tanks: {
-        'tide-pool': { fishCounts: {}, decorations: [] },
-        'open-reef': { fishCounts: {}, decorations: [] },
-        'abyss': { fishCounts: {}, decorations: [] },
+        'tide-pool': { fishCounts: {}, slotTiers: {} },
+        'open-reef': { fishCounts: {}, slotTiers: {} },
+        'abyss': { fishCounts: {}, slotTiers: {} },
       },
     };
     const loop = new SimLoop();

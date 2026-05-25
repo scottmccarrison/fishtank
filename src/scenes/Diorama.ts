@@ -2,9 +2,11 @@ import Phaser from 'phaser';
 import { CONSTANTS } from '../data/constants.js';
 import { FISH_SPECIES } from '../data/fish.js';
 import { BIOMES } from '../data/biomes.js';
+import { DECORATION_SLOTS, DECORATION_LAYOUT } from '../data/decorationSlots.js';
+import { DECORATION_BY_ID } from '../data/decorations.js';
 import { FishAI } from '../sim/FishAI.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
-import { createTankFloor, TANK_FLOOR_HEIGHT, type TankFloor } from '../ui/TankFloor.js';
+import { createTankFloor, type TankFloor } from '../ui/TankFloor.js';
 import { createTankGlass } from '../ui/TankGlass.js';
 import type { DisplayFish } from '../types/Fish.js';
 import type { SaveStateV2, BiomeTankState } from '../types/Save.js';
@@ -24,7 +26,7 @@ export interface Diorama {
 
 /**
  * Per-biome rendering state - sprites keyed by speciesId for fish,
- * and a separate map for decoration sprites.
+ * and a separate map for decoration sprites (keyed by slotId).
  */
 interface BiomeRenderState {
   container: Phaser.GameObjects.Container;
@@ -137,29 +139,57 @@ export function createDiorama(
     fishMap.set(speciesId, df);
 
     const sprite = scene.add.image(x, y, speciesId);
-    sprite.setScale(species.scale * CONSTANTS.RENDER_SCALE_MULTIPLIER);
+    sprite.setScale(species.scale * CONSTANTS.RENDER_SCALE_MULTIPLIER * CONSTANTS.CONTENT_SCALE);
     sprite.setFlipX(direction === -1);
     render.container.add(sprite);
     render.fishSprites.set(speciesId, sprite);
   }
 
-  function syncDecorations(render: BiomeRenderState, decos: string[]): void {
-    const n = decos.length;
-    decos.forEach((decoId, index) => {
-      if (render.decoSprites.has(decoId)) return;
+  /**
+   * Syncs the slot-based decoration sprites for a biome.
+   * One sprite per slot, keyed by slotId. Tier 0 = destroy sprite (empty slot).
+   * Tier > 0 = create or update sprite to the current tier's decoration.
+   */
+  function syncSlots(render: BiomeRenderState, biomeId: string): void {
+    const state = getState();
+    const slotTiers = state.tanks[biomeId]?.slotTiers ?? {};
 
-      // Deterministic floor position - evenly spread across width
-      const x = (CONSTANTS.CANVAS_WIDTH / (n + 1)) * (index + 1);
-      const sprite = scene.add.image(x, 0, decoId);
-      sprite.setScale(CONSTANTS.DECORATION_RENDER_SCALE);
-      sprite.setDepth(-5);
-      // Position y at floor - displayHeight is post-scale so the sprite sits on the sand
-      const floorY =
-        CONSTANTS.DIORAMA_HEIGHT - TANK_FLOOR_HEIGHT - sprite.displayHeight / 2;
-      sprite.setY(floorY);
-      render.container.add(sprite);
-      render.decoSprites.set(decoId, sprite);
-    });
+    for (const slot of DECORATION_SLOTS) {
+      const currentTier = slotTiers[slot.id] ?? 0;
+
+      if (currentTier === 0) {
+        // Empty slot - destroy sprite if it exists
+        const existing = render.decoSprites.get(slot.id);
+        if (existing) {
+          existing.destroy();
+          render.decoSprites.delete(slot.id);
+        }
+        continue;
+      }
+
+      const decoId = slot.tiers[currentTier - 1]!;
+      const layout = DECORATION_LAYOUT[slot.id]!;
+      const deco = DECORATION_BY_ID.get(decoId);
+      if (!deco) continue;
+
+      const existingSprite = render.decoSprites.get(slot.id);
+      if (!existingSprite) {
+        // Create new sprite for this slot
+        const sprite = scene.add
+          .image(layout.x, layout.y, decoId)
+          .setOrigin(0.5, 1)
+          .setDepth(-5);
+        sprite.setScale(deco.renderScale * CONSTANTS.CONTENT_SCALE);
+        render.container.add(sprite);
+        render.decoSprites.set(slot.id, sprite);
+      } else {
+        // Sprite exists - update texture if tier changed (texture key is the decoId)
+        if (existingSprite.texture.key !== decoId) {
+          existingSprite.setTexture(decoId);
+          existingSprite.setScale(deco.renderScale * CONSTANTS.CONTENT_SCALE);
+        }
+      }
+    }
   }
 
   // Render the initial biome immediately at construction
@@ -175,7 +205,7 @@ export function createDiorama(
         spawnFishSprite(initialRender, fishMap, speciesId);
       }
     }
-    syncDecorations(initialRender, initialTank.decorations);
+    syncSlots(initialRender, initialBiomeId);
   }
 
   return {
@@ -226,8 +256,8 @@ export function createDiorama(
         }
       }
 
-      // Sync decorations (dormant on fresh saves - decorations[] is empty)
-      syncDecorations(render, tank.decorations);
+      // Sync decoration slots
+      syncSlots(render, activeBiomeId);
     },
 
     getDisplayFish(): DisplayFish[] {

@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type Phaser from 'phaser';
-import { rowsForBiome, rowsForDecorations, isTabSelectable, clampScroll, rowLabel, createLedger } from './Ledger.js';
+import { rowsForBiome, rowsForSlots, isTabSelectable, clampScroll, rowLabel, createLedger } from './Ledger.js';
 import { BIOMES } from '../data/biomes.js';
 import { FISH_SPECIES } from '../data/fish.js';
-import { DECORATIONS } from '../data/decorations.js';
+import { DECORATION_BY_ID } from '../data/decorations.js';
+import { DECORATION_SLOTS } from '../data/decorationSlots.js';
 import { fishCost } from '../util/fishCost.js';
 import type { SaveStateV2 } from '../types/Save.js';
 
@@ -57,14 +58,27 @@ describe('rowsForBiome', () => {
   });
 });
 
-describe('rowsForDecorations', () => {
-  it('returns one row per decoration, in order, with matching id and cost', () => {
-    const rows = rowsForDecorations();
-    expect(rows).toHaveLength(DECORATIONS.length);
-    expect(rows.map((r) => r.speciesId)).toEqual(DECORATIONS.map((d) => d.id));
+describe('rowsForSlots', () => {
+  it('returns one row per decoration slot, in order', () => {
+    const rows = rowsForSlots();
+    expect(rows).toHaveLength(DECORATION_SLOTS.length);
+    expect(rows.map((r) => r.slotId)).toEqual(DECORATION_SLOTS.map((s) => s.id));
+  });
+
+  it('each row has the correct tierCount matching its slot', () => {
+    const rows = rowsForSlots();
     for (const row of rows) {
-      const deco = DECORATIONS.find((d) => d.id === row.speciesId)!;
-      expect(row.cost).toBe(deco.cost);
+      const slot = DECORATION_SLOTS.find((s) => s.id === row.slotId)!;
+      expect(row.tierCount).toBe(slot.tiers.length);
+    }
+  });
+
+  it('each row tierCosts matches the decoration costs in order', () => {
+    const rows = rowsForSlots();
+    for (const row of rows) {
+      const slot = DECORATION_SLOTS.find((s) => s.id === row.slotId)!;
+      const expectedCosts = slot.tiers.map((decoId) => DECORATION_BY_ID.get(decoId)!.cost);
+      expect(row.tierCosts).toEqual(expectedCosts);
     }
   });
 });
@@ -154,9 +168,9 @@ function makeState(overrides: Partial<SaveStateV2> = {}): SaveStateV2 {
     coinBalance: 0,
     lifetimeEarned: 0,
     tanks: {
-      'tide-pool': { fishCounts: { goldfish: 1 }, decorations: [] },
-      'open-reef': { fishCounts: {}, decorations: [] },
-      'abyss': { fishCounts: {}, decorations: [] },
+      'tide-pool': { fishCounts: { goldfish: 1 }, slotTiers: {} },
+      'open-reef': { fishCounts: {}, slotTiers: {} },
+      'abyss': { fishCounts: {}, slotTiers: {} },
     },
     ...overrides,
   };

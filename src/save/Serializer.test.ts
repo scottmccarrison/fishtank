@@ -10,15 +10,15 @@ const sample: SaveStateV2 = {
   tanks: {
     'tide-pool': {
       fishCounts: { goldfish: 2, guppy: 1 },
-      decorations: ['coral'],
+      slotTiers: { greenery: 1 },
     },
     'open-reef': {
       fishCounts: {},
-      decorations: [],
+      slotTiers: {},
     },
     'abyss': {
       fishCounts: {},
-      decorations: [],
+      slotTiers: {},
     },
   },
 };
@@ -34,9 +34,9 @@ describe('Serializer', () => {
     const empty: SaveStateV2 = {
       ...sample,
       tanks: {
-        'tide-pool': { fishCounts: {}, decorations: [] },
-        'open-reef': { fishCounts: {}, decorations: [] },
-        'abyss': { fishCounts: {}, decorations: [] },
+        'tide-pool': { fishCounts: {}, slotTiers: {} },
+        'open-reef': { fishCounts: {}, slotTiers: {} },
+        'abyss': { fishCounts: {}, slotTiers: {} },
       },
     };
     expect(deserialize(serialize(empty))).toEqual(empty);

@@ -54,7 +54,7 @@ function pickFile(accept: string): Promise<File | null> {
  * Minimal shape validation beyond Serializer's version check. Catches obviously
  * broken imports (corrupted balances, malformed tanks) before they crash the game.
  * Validates the V2 shape: version 2, finite balances, tanks object with valid entries
- * for every known biome, non-negative fish counts, and string-only decoration arrays.
+ * for every known biome, non-negative fish counts, and a numeric slot-tier map.
  */
 export function isPlausibleSaveState(s: SaveStateV2): boolean {
   if (s.version !== 2) return false;
@@ -70,10 +70,13 @@ export function isPlausibleSaveState(s: SaveStateV2): boolean {
     for (const count of Object.values(tank.fishCounts)) {
       if (!Number.isFinite(count) || count < 0) return false;
     }
-    if (!Array.isArray(tank.decorations)) return false;
-    for (const d of tank.decorations) {
-      // Reject null, numbers, objects - only plain strings are valid decoration ids.
-      if (typeof d !== 'string') return false;
+    // slotTiers is optional (old saves without it are still valid - treated as {}).
+    // When present it must be a non-null object with all-number values.
+    if (tank.slotTiers !== undefined && tank.slotTiers !== null) {
+      if (typeof tank.slotTiers !== 'object' || Array.isArray(tank.slotTiers)) return false;
+      for (const tier of Object.values(tank.slotTiers)) {
+        if (typeof tier !== 'number') return false;
+      }
     }
   }
   return true;
@@ -94,7 +97,7 @@ async function importSaveFlow(simLoop: SimLoop): Promise<void> {
 }
 
 function resetSaveFlow(simLoop: SimLoop): void {
-  if (!window.confirm('Reset save? This wipes all coins, fish, and decorations. Cannot be undone.')) {
+  if (!window.confirm('Reset save? This wipes all coins, fish, and decoration upgrades. Cannot be undone.')) {
     return;
   }
   simLoop.stop();

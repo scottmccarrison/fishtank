@@ -10,7 +10,7 @@ describe('syncDisplayFish', () => {
   it('one species with count 5 -> exactly one DisplayFish entry', () => {
     const tank: BiomeTankState = {
       fishCounts: { goldfish: 5 },
-      decorations: [],
+      slotTiers: {},
     };
     const existing = new Map<string, DisplayFish>();
     const { kept, newSpeciesIds } = syncDisplayFish(tank, existing);
@@ -25,7 +25,7 @@ describe('syncDisplayFish', () => {
   it('two species each with count > 0 -> two DisplayFish entries total', () => {
     const tank: BiomeTankState = {
       fishCounts: { goldfish: 2, guppy: 3 },
-      decorations: [],
+      slotTiers: {},
     };
     const existing = new Map<string, DisplayFish>();
     const { kept, newSpeciesIds } = syncDisplayFish(tank, existing);
@@ -37,7 +37,7 @@ describe('syncDisplayFish', () => {
   it('existing DisplayFish is preserved (kept) rather than re-created', () => {
     const tank: BiomeTankState = {
       fishCounts: { goldfish: 3 },
-      decorations: [],
+      slotTiers: {},
     };
     const existingFish: DisplayFish = { speciesId: 'goldfish', x: 100, y: 200, direction: 1, behaviorType: 'cruiser' };
     const existing = new Map<string, DisplayFish>([['goldfish', existingFish]]);
@@ -50,7 +50,7 @@ describe('syncDisplayFish', () => {
   it('species with count 0 -> none returned', () => {
     const tank: BiomeTankState = {
       fishCounts: { goldfish: 0, guppy: 0 },
-      decorations: [],
+      slotTiers: {},
     };
     const existing = new Map<string, DisplayFish>();
     const { kept, newSpeciesIds } = syncDisplayFish(tank, existing);
@@ -61,7 +61,7 @@ describe('syncDisplayFish', () => {
   it('mix of count 0 and count > 0 -> only non-zero species represented', () => {
     const tank: BiomeTankState = {
       fishCounts: { goldfish: 1, guppy: 0, 'neon-tetra': 4 },
-      decorations: [],
+      slotTiers: {},
     };
     const existing = new Map<string, DisplayFish>();
     const { kept, newSpeciesIds } = syncDisplayFish(tank, existing);
