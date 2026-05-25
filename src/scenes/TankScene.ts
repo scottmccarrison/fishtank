@@ -8,6 +8,11 @@ import { createCatchupToast, type CatchupToast } from '../ui/CatchupToast.js';
 import { createWelcomeModal, type WelcomeModal } from '../ui/WelcomeModal.js';
 import { createSettingsPanel, type SettingsPanel } from '../ui/SettingsPanel.js';
 import { createLedger, type Ledger } from '../ui/Ledger.js';
+import { createGradientBackdrop } from '../ui/GradientBackdrop.js';
+import { createTankFloor } from '../ui/TankFloor.js';
+import { createTankGlass } from '../ui/TankGlass.js';
+import { createLayoutEditor } from '../ui/LayoutEditor.js';
+import { BIOMES } from '../data/biomes.js';
 import { CONSTANTS } from '../data/constants.js';
 import { getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 import { getState } from '../state.js';
@@ -23,6 +28,7 @@ export class TankScene extends Phaser.Scene {
   private catchupToast!: CatchupToast;
   private welcomeModal!: WelcomeModal;
   private currentBiomeId!: string;
+  private editMode = false;
 
   constructor() {
     super('TankScene');
@@ -35,6 +41,19 @@ export class TankScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Dev-only decoration layout authoring tool (?edit). Renders the reference tank
+    // chrome (tide-pool) for grounding, then the draggable/scalable editor; skips the
+    // normal diorama/ledger/HUD/fish. See LayoutEditor.ts.
+    if (new URLSearchParams(window.location.search).has('edit')) {
+      this.editMode = true;
+      const ref = BIOMES.find((b) => b.id === 'tide-pool') ?? BIOMES[0]!;
+      createGradientBackdrop(this, ref);
+      createTankFloor(this, ref.id);
+      createTankGlass(this);
+      createLayoutEditor(this);
+      return;
+    }
+
     this.currentBiomeId = getHighestUnlockedBiome(getState().lifetimeEarned).id;
 
     // Wire up diorama (top region) and ledger (bottom region); both render
@@ -79,6 +98,7 @@ export class TankScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.editMode) return; // editor is input-driven; no per-frame sim
     this.diorama.update(delta);
     this.ledger.update();
     this.coinCounter.update();
