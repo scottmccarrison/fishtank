@@ -283,38 +283,45 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
   // ---------------------------------------------------------------------------
   // Mode visibility
   // ---------------------------------------------------------------------------
+  // Decor + terrain share the tank view so slots can be placed ON the terrain.
+  // Only the active mode's items are interactive; the other layer shows dimmed as
+  // a backdrop. Fish mode is a separate sizing grid (its own view).
   function applyModeVisibility(): void {
-    const showDecor = mode === 'decor';
-    const showTerrain = mode === 'terrain';
     const showFish = mode === 'fish';
     for (const it of decorItems) {
-      it.sprite.setVisible(showDecor).setInteractive(showDecor);
-      it.label.setVisible(showDecor);
+      it.sprite.setVisible(!showFish);
+      it.label.setVisible(mode === 'decor');
+      if (mode === 'decor') {
+        it.sprite.setInteractive({ draggable: true, useHandCursor: true });
+        it.sprite.setAlpha(1);
+      } else {
+        it.sprite.disableInteractive();
+        it.sprite.setAlpha(0.45); // dimmed backdrop while editing terrain
+      }
     }
     for (const it of terrainItems) {
-      it.sprite.setVisible(showTerrain).setInteractive(showTerrain);
-      it.label.setVisible(showTerrain);
+      it.sprite.setVisible(!showFish);
+      it.label.setVisible(mode === 'terrain');
+      if (mode === 'terrain') {
+        it.sprite.setInteractive({ draggable: true, useHandCursor: true });
+        it.sprite.setAlpha(it.entry.included ? 1 : 0.25); // excluded rocks faded but draggable in
+      } else {
+        it.sprite.disableInteractive();
+        // In decor mode, only INCLUDED terrain shows, dimmed as a backdrop to place slots on.
+        it.sprite.setAlpha(it.entry.included ? 0.6 : 0);
+      }
     }
     for (const it of fishItems) {
       it.sprite.setVisible(showFish);
-      // Fish items use gameobjectdown, not drag
-      if (showFish) {
-        it.sprite.setInteractive({ useHandCursor: true });
-      } else {
-        it.sprite.disableInteractive();
-      }
+      if (showFish) it.sprite.setInteractive({ useHandCursor: true });
+      else it.sprite.disableInteractive();
       it.label.setVisible(showFish);
     }
-    // Clear selection when mode changes
     selectedDecor = null;
     selectedTerrain = null;
     selectedFish = null;
     hud.setText(hudText());
   }
-
-  // Apply initial visibility
-  for (const it of terrainItems) { it.sprite.setVisible(false).disableInteractive(); it.label.setVisible(false); }
-  for (const it of fishItems) { it.sprite.setVisible(false).disableInteractive(); it.label.setVisible(false); }
 
   // ---------------------------------------------------------------------------
   // Zoom: scale all visible items
@@ -447,6 +454,9 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
       padding: { x: 6, y: 4 },
     })
     .setDepth(300);
+
+  // Initial visibility (mode starts 'decor': slots editable, included terrain as backdrop).
+  applyModeVisibility();
 
   // ---------------------------------------------------------------------------
   // Input handlers
