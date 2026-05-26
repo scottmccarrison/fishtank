@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { preloadFishSprites, preloadDecorationSprites, preloadSurfaceAssets } from './SpriteLoader.js';
+import { preloadFishSprites, preloadDecorationSprites, preloadSurfaceAssets, preloadTerrainAssets } from './SpriteLoader.js';
 import { createDiorama, type Diorama } from './Diorama.js';
 import { createCoinCounter, type CoinCounter } from '../ui/CoinCounter.js';
 import { createCoinFloater, type CoinFloater } from '../ui/CoinFloater.js';
@@ -8,12 +8,18 @@ import { createCatchupToast, type CatchupToast } from '../ui/CatchupToast.js';
 import { createWelcomeModal, type WelcomeModal } from '../ui/WelcomeModal.js';
 import { createSettingsPanel, type SettingsPanel } from '../ui/SettingsPanel.js';
 import { createLedger, type Ledger } from '../ui/Ledger.js';
+import { createGradientBackdrop } from '../ui/GradientBackdrop.js';
+import { createTankFloor } from '../ui/TankFloor.js';
+import { createTankGlass } from '../ui/TankGlass.js';
+import { createLayoutEditor } from '../ui/LayoutEditor.js';
 import { CONSTANTS } from '../data/constants.js';
+import { BIOMES } from '../data/biomes.js';
 import { getHighestUnlockedBiome } from '../util/biomeUnlock.js';
 import { getState } from '../state.js';
 import { isFirstRun, clearFirstRun, consumePendingCatchup, getSimLoop } from '../sessionState.js';
 
 export class TankScene extends Phaser.Scene {
+  private editMode = false;
   private diorama!: Diorama;
   private ledger!: Ledger;
   private coinCounter!: CoinCounter;
@@ -32,9 +38,21 @@ export class TankScene extends Phaser.Scene {
     preloadFishSprites(this);
     preloadDecorationSprites(this);
     preloadSurfaceAssets(this);
+    preloadTerrainAssets(this);
   }
 
   create(): void {
+    // Edit mode: render reference chrome only, then hand off to the layout editor.
+    if (new URLSearchParams(window.location.search).has('edit')) {
+      this.editMode = true;
+      const tideBiome = BIOMES.find((b) => b.id === 'tide-pool') ?? BIOMES[0]!;
+      createGradientBackdrop(this, tideBiome);
+      createTankFloor(this, 'tide-pool');
+      createTankGlass(this);
+      createLayoutEditor(this);
+      return;
+    }
+
     this.currentBiomeId = getHighestUnlockedBiome(getState().lifetimeEarned).id;
 
     // Wire up diorama (top region) and ledger (bottom region); both render
@@ -79,6 +97,7 @@ export class TankScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.editMode) return;
     this.diorama.update(delta);
     this.ledger.update();
     this.coinCounter.update();

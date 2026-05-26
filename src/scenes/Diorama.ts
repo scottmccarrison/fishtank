@@ -8,6 +8,7 @@ import { FishAI } from '../sim/FishAI.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
 import { createTankFloor, type TankFloor } from '../ui/TankFloor.js';
 import { createTankGlass } from '../ui/TankGlass.js';
+import { createAquascape } from '../ui/Aquascape.js';
 import type { DisplayFish } from '../types/Fish.js';
 import type { SaveStateV2, BiomeTankState } from '../types/Save.js';
 
@@ -89,6 +90,8 @@ export function createDiorama(
   const floor: TankFloor = createTankFloor(scene, initialBiomeId, CONSTANTS.DIORAMA_HEIGHT);
   // Glass frame + waterline overlay so the diorama reads as a contained tank.
   const glass = createTankGlass(scene);
+  // Aquascape terrain (rock shelves/arches) for vertical depth; back/front bands.
+  const aquascape = createAquascape(scene);
 
   function ensureBiomeRender(biomeId: string): BiomeRenderState {
     const existing = biomeRender.get(biomeId);
@@ -270,6 +273,7 @@ export function createDiorama(
       backdrop.destroy();
       floor.destroy();
       glass.destroy();
+      aquascape.destroy();
       for (const render of biomeRender.values()) {
         render.container.destroy(true);
       }

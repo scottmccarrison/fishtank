@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { FISH_SPECIES } from '../data/fish.js';
 import { DECORATIONS } from '../data/decorations.js';
+import { TERRAIN_ROCKS, terrainRockFile } from '../data/terrainLayout.js';
 
 /**
  * Queue load.image calls for every FishSpecies sprite onto the scene's loader.
@@ -36,4 +37,14 @@ export function preloadSurfaceAssets(scene: Phaser.Scene): void {
   scene.load.image('floor-cobble', encodeURI(base + 'assets/brysia/floor/floor_cobble.png'));
   scene.load.image('floor-dark', encodeURI(base + 'assets/brysia/floor/floor_dark.png'));
   scene.load.image('water-texture', encodeURI(base + 'assets/brysia/backgrounds/background_3.png'));
+}
+
+/**
+ * Preload the aquascape terrain rocks (big stones). Keys: 'stone-3'..'stone-8'.
+ */
+export function preloadTerrainAssets(scene: Phaser.Scene): void {
+  const base = import.meta.env.BASE_URL;
+  for (const rockId of TERRAIN_ROCKS) {
+    scene.load.image(rockId, encodeURI(base + 'assets/brysia/terrain/' + terrainRockFile(rockId)));
+  }
 }
