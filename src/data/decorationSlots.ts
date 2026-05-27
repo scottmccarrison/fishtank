@@ -26,18 +26,17 @@ export const DECORATION_SLOTS: DecorationSlot[] = [
 ];
 
 /**
- * Slot positions (bottom-anchor x/y). Designed composition - refine in the editor.
- * Distributed across 3 height bands and clustered (not a row): landmark + greenery
- * high on the back-left massif, coral elevated on the mid shelf, wreck + treasure
- * low on the right floor (overlapping), shells low on the front sand.
+ * Slot positions (bottom-anchor x/y). High-left -> low-right diagonal following
+ * the substrate slope. The renderer snaps y to substrateHeightAt(x) at runtime,
+ * so the y values here are approximations for self-consistency only.
  */
 export const DECORATION_LAYOUT: Record<string, { x: number; y: number }> = {
-  landmark: { x: 110, y: 360 }, // high - vertical centerpiece on the back-left massif
-  greenery: { x: 175, y: 398 }, // left-mid, cascading down from the massif
-  coral:    { x: 235, y: 356 }, // elevated - sits on the mid shelf (stone-5)
-  wreck:    { x: 300, y: 420 }, // low - big mass on the right floor
-  treasure: { x: 348, y: 428 }, // low - tucked right of the wreck (overlaps for depth)
-  shells:   { x: 205, y: 446 }, // lowest - front sand, foreground
+  landmark: { x: 95,  y: 373 }, // high-left plateau
+  greenery: { x: 150, y: 376 }, // left-mid, stepping down the slope
+  coral:    { x: 220, y: 394 }, // mid slope
+  wreck:    { x: 305, y: 413 }, // right-center floor
+  treasure: { x: 360, y: 421 }, // lower right
+  shells:   { x: 405, y: 426 }, // low-right open sand
 };
 
 export const SLOT_BY_ID = new Map(DECORATION_SLOTS.map((s) => [s.id, s]));

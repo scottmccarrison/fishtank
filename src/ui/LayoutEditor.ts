@@ -4,6 +4,7 @@ import { DECORATION_BY_ID } from '../data/decorations.js';
 import { FISH_SPECIES } from '../data/fish.js';
 import { TERRAIN_ROCKS, TERRAIN_LAYOUT } from '../data/terrainLayout.js';
 import { CONSTANTS } from '../data/constants.js';
+import { substrateHeightAt, substrateTopPoints } from '../data/substrate.js';
 
 /**
  * Dev-only aquascape authoring tool (enabled with the `?edit` URL param).
@@ -31,7 +32,7 @@ const SCALE_STEP = 0.1;
 const ZOOM_STEP = 0.05;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 1.5;
-/** y of the sand surface - matches TANK_FLOOR_HEIGHT convention. */
+/** Fallback y used when a slot has no stored position and no baked layout. */
 const FLOOR_TOP_Y = CONSTANTS.DIORAMA_HEIGHT - 60;
 const SAVE_KEY = 'fishtank.editlayout';
 
@@ -129,9 +130,15 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
 
   // Pre-populate authored state from saved (with sensible defaults)
   for (const slot of DECORATION_SLOTS) {
-    // Seed from in-progress edits, else the baked composition, else a safe fallback.
-    const sp = saved.slots?.[slot.id] ?? DECORATION_LAYOUT[slot.id];
-    slotPos[slot.id] = sp ? { x: sp.x, y: sp.y } : { x: 0, y: FLOOR_TOP_Y };
+    // Seed from in-progress edits; else snap baked x to substrate y; else safe fallback.
+    if (saved.slots?.[slot.id]) {
+      slotPos[slot.id] = { x: saved.slots[slot.id]!.x, y: saved.slots[slot.id]!.y };
+    } else if (DECORATION_LAYOUT[slot.id]) {
+      const baked = DECORATION_LAYOUT[slot.id]!;
+      slotPos[slot.id] = { x: baked.x, y: substrateHeightAt(baked.x) };
+    } else {
+      slotPos[slot.id] = { x: 0, y: FLOOR_TOP_Y };
+    }
   }
   for (const [id, deco] of DECORATION_BY_ID) {
     decorScale[id] = saved.decorScale?.[id] ?? deco.renderScale;
@@ -149,7 +156,7 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
     // In-progress edits win; else baked rocks come in included at their composed
     // spot; else the rock parks off to the side, excluded.
     terrainMap[rockId] = saved_entry ?? (baked
-      ? { rockId, x: baked.x, y: baked.y, scale: baked.scale, band: baked.band, included: true }
+      ? { rockId, x: baked.x, y: substrateHeightAt(baked.x), scale: baked.scale, band: baked.band, included: true }
       : { rockId, x: DEFAULT_TERRAIN_START_X + i * DEFAULT_TERRAIN_STEP, y: FLOOR_TOP_Y, scale: 2, band: 'back', included: false });
   });
 
@@ -461,12 +468,14 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
     _p: Phaser.Input.Pointer,
     obj: Phaser.GameObjects.GameObject,
     dragX: number,
-    dragY: number,
+    _dragY: number,
   ): void => {
     const decorItem = decorItems.find((i) => i.sprite === obj);
     if (decorItem) {
-      decorItem.sprite.setPosition(Math.round(dragX), Math.round(dragY));
-      slotPos[decorItem.slotId] = { x: Math.round(dragX), y: Math.round(dragY) };
+      const snapX = Math.round(dragX);
+      const snapY = substrateHeightAt(snapX);
+      decorItem.sprite.setPosition(snapX, snapY);
+      slotPos[decorItem.slotId] = { x: snapX, y: snapY };
       refreshDecorLabel(decorItem);
       if (selectedDecor === decorItem) hud.setText(hudText());
       persist();
@@ -474,9 +483,11 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
     }
     const terrainItem = terrainItems.find((i) => i.sprite === obj);
     if (terrainItem) {
-      terrainItem.sprite.setPosition(Math.round(dragX), Math.round(dragY));
-      terrainItem.entry.x = Math.round(dragX);
-      terrainItem.entry.y = Math.round(dragY);
+      const snapX = Math.round(dragX);
+      const snapY = substrateHeightAt(snapX);
+      terrainItem.sprite.setPosition(snapX, snapY);
+      terrainItem.entry.x = snapX;
+      terrainItem.entry.y = snapY;
       refreshTerrainLabel(terrainItem);
       if (selectedTerrain === terrainItem) hud.setText(hudText());
       persist();
@@ -646,11 +657,17 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
   });
 
   // ---------------------------------------------------------------------------
-  // Floor reference line
+  // Floor reference line - polyline along the substrate curve
   // ---------------------------------------------------------------------------
   const floorLine = scene.add.graphics().setDepth(5);
   floorLine.lineStyle(1, 0xffffff, 0.4);
-  floorLine.lineBetween(0, FLOOR_TOP_Y, CONSTANTS.CANVAS_WIDTH, FLOOR_TOP_Y);
+  const subPts = substrateTopPoints(CONSTANTS.CANVAS_WIDTH);
+  for (let i = 1; i < subPts.length; i++) {
+    floorLine.lineBetween(
+      subPts[i - 1]!.x, subPts[i - 1]!.y,
+      subPts[i]!.x, subPts[i]!.y,
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // Destroy

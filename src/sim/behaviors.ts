@@ -46,7 +46,6 @@ export const FLEE_SPEED = 100;       // px/s flee dart speed
 
 // Diorama dimensions (matches CONSTANTS in data/constants.ts)
 export const DIORAMA_HEIGHT = 480;
-const BAND_TOP = DIORAMA_HEIGHT - BOTTOM_BAND; // 360 - top of floor species band
 
 export interface AIState {
   driftSpeed: number;
@@ -66,6 +65,13 @@ export interface Bounds {
    * when omitted, so existing callers and the FishAI regression gate are unchanged.
    */
   top?: number;
+  /**
+   * Optional ground surface function: returns the y of the substrate at a given x.
+   * When set, floor-dweller archetypes snap to the slope instead of the flat bottom.
+   * When absent, behavior is byte-identical to today (bounds.height - bounds.margin),
+   * so all existing tests stay green unchanged.
+   */
+  floorAt?: (x: number) => number;
 }
 
 /**
@@ -186,12 +192,13 @@ export function moveSchooler(
 // Floor helpers: snap to sand line or clamp within the bottom band.
 // ---------------------------------------------------------------------------
 export function snapToFloor(fish: DisplayFish, bounds: Bounds): void {
-  fish.y = bounds.height - bounds.margin; // 448 with default bounds
+  fish.y = bounds.floorAt ? bounds.floorAt(fish.x) : (bounds.height - bounds.margin);
 }
 
 export function clampToBand(fish: DisplayFish, bounds: Bounds): void {
-  const floorY = bounds.height - bounds.margin;
-  if (fish.y < BAND_TOP) fish.y = BAND_TOP;
+  const floorY = bounds.floorAt ? bounds.floorAt(fish.x) : (bounds.height - bounds.margin);
+  const bandTop = floorY - (BOTTOM_BAND - bounds.margin);
+  if (fish.y < bandTop) fish.y = bandTop;
   if (fish.y > floorY) fish.y = floorY;
 }
 

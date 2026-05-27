@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { CONSTANTS } from '../data/constants.js';
 import { TERRAIN_LAYOUT } from '../data/terrainLayout.js';
+import { substrateHeightAt } from '../data/substrate.js';
 
 /**
  * Renders the fixed aquascape terrain (rock shelves + arches) from TERRAIN_LAYOUT,
@@ -27,8 +28,10 @@ export function createAquascape(scene: Phaser.Scene): Aquascape {
   const sprites: Phaser.GameObjects.Image[] = [];
 
   for (const rock of TERRAIN_LAYOUT) {
+    // Snap y to the substrate surface at this rock's x position
+    const rockY = substrateHeightAt(rock.x);
     const sprite = scene.add
-      .image(rock.x, rock.y, rock.rockId)
+      .image(rock.x, rockY, rock.rockId)
       .setOrigin(0.5, 1)
       .setScale(rock.scale * CONSTANTS.CONTENT_SCALE)
       .setDepth(rock.band === 'back' ? BACK_DEPTH : FRONT_DEPTH);

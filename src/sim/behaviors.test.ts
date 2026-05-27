@@ -556,3 +556,27 @@ describe('clampY top inset (waterline)', () => {
     expect(fish.y).toBeLessThan(60);
   });
 });
+
+// ---------------------------------------------------------------------------
+// floorAt: sloped substrate support in Bounds
+// ---------------------------------------------------------------------------
+describe('snapToFloor with floorAt', () => {
+  it('snaps a walker/rester to floorAt(x)=300 instead of the flat default (448)', () => {
+    const slopedBounds: Bounds = {
+      width: 450,
+      height: 480,
+      margin: 32,
+      floorAt: (_x: number) => 300,
+    };
+
+    const walker = makeFish({ x: 225, y: 400, behaviorType: 'walker' });
+    const walkerState = makeState();
+    moveWalker(walker, walkerState, 16, 0, slopedBounds, stableRng);
+    expect(walker.y).toBe(300);
+
+    const rester = makeFish({ x: 225, y: 400, behaviorType: 'rester' });
+    const resterState = makeState();
+    moveRester(rester, resterState, 16, 0, slopedBounds, stableRng);
+    expect(rester.y).toBe(300);
+  });
+});

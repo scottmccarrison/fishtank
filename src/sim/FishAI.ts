@@ -30,6 +30,12 @@ export interface FishAIOptions {
    * Omitted -> fish may rise to `margin`, preserving the original behavior.
    */
   surfaceTop?: number;
+  /**
+   * Optional ground surface function: y at a given x. Passed through to Bounds
+   * so floor-dweller archetypes follow the substrate slope.
+   * Omitted -> flat floor at bounds.height - margin (preserves original behavior).
+   */
+  floorAt?: (x: number) => number;
   /** Inject a deterministic RNG for tests. Defaults to Math.random. */
   rng?: () => number;
 }
@@ -53,6 +59,7 @@ export class FishAI {
   private readonly height: number;
   private readonly margin: number;
   private readonly surfaceTop?: number;
+  private readonly floorAt?: (x: number) => number;
   private readonly rng: () => number;
   private readonly states = new Map<string, AIState>();
   private elapsedMs = 0;
@@ -62,6 +69,7 @@ export class FishAI {
     this.height = opts.tankHeight;
     this.margin = opts.margin ?? DEFAULT_MARGIN;
     this.surfaceTop = opts.surfaceTop;
+    this.floorAt = opts.floorAt;
     this.rng = opts.rng ?? Math.random;
   }
 
@@ -72,6 +80,7 @@ export class FishAI {
       height: this.height,
       margin: this.margin,
       top: this.surfaceTop,
+      floorAt: this.floorAt,
     };
 
     // --- Pass 1: solo-move every fish (WS1 per-archetype dispatch) ---

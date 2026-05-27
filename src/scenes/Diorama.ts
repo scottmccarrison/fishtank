@@ -6,7 +6,8 @@ import { DECORATION_SLOTS, DECORATION_LAYOUT } from '../data/decorationSlots.js'
 import { DECORATION_BY_ID } from '../data/decorations.js';
 import { FishAI } from '../sim/FishAI.js';
 import { createGradientBackdrop, type GradientBackdrop } from '../ui/GradientBackdrop.js';
-import { createTankFloor, type TankFloor } from '../ui/TankFloor.js';
+import { createSubstrate, type Substrate } from '../ui/Substrate.js';
+import { substrateHeightAt } from '../data/substrate.js';
 import { createTankGlass } from '../ui/TankGlass.js';
 import { createAquascape } from '../ui/Aquascape.js';
 import type { DisplayFish } from '../types/Fish.js';
@@ -86,8 +87,8 @@ export function createDiorama(
   }
 
   const backdrop: GradientBackdrop = createGradientBackdrop(scene, initialBiome);
-  // Floor is confined to diorama region; receives the initial biome so it picks the right tile.
-  const floor: TankFloor = createTankFloor(scene, initialBiomeId, CONSTANTS.DIORAMA_HEIGHT);
+  // Sloped substrate - replaces the old flat TankFloor.
+  const floor: Substrate = createSubstrate(scene, initialBiomeId);
   // Glass frame + waterline overlay so the diorama reads as a contained tank.
   const glass = createTankGlass(scene);
   // Aquascape terrain (rock shelves/arches) for vertical depth; back/front bands.
@@ -105,6 +106,7 @@ export function createDiorama(
       tankHeight: CONSTANTS.DIORAMA_HEIGHT,
       // Keep fish below the waterline (a touch below the shimmer so they don't clip it).
       surfaceTop: CONSTANTS.WATER_SURFACE_Y + 12,
+      floorAt: substrateHeightAt,
     });
 
     const state: BiomeRenderState = { container, fishSprites, decoSprites, ai };
@@ -175,11 +177,14 @@ export function createDiorama(
       const deco = DECORATION_BY_ID.get(decoId);
       if (!deco) continue;
 
+      const slotX = layout.x;
+      const slotY = substrateHeightAt(slotX);
+
       const existingSprite = render.decoSprites.get(slot.id);
       if (!existingSprite) {
-        // Create new sprite for this slot
+        // Create new sprite for this slot - y anchored to the substrate curve
         const sprite = scene.add
-          .image(layout.x, layout.y, decoId)
+          .image(slotX, slotY, decoId)
           .setOrigin(0.5, 1)
           .setDepth(-5);
         sprite.setScale(deco.renderScale * CONSTANTS.CONTENT_SCALE);
@@ -191,6 +196,8 @@ export function createDiorama(
           existingSprite.setTexture(decoId);
           existingSprite.setScale(deco.renderScale * CONSTANTS.CONTENT_SCALE);
         }
+        // Always re-snap to substrate (slope may differ per x)
+        existingSprite.setPosition(slotX, slotY);
       }
     }
   }
