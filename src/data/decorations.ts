@@ -21,7 +21,7 @@ export const DECORATIONS: DecorationSpecies[] = [
   { id: 'tall-grass',      name: 'Tall Grass',      cost: 120,  renderScale: 3.0, assetPath: 'assets/brysia/decorations/big_grass_1.png' },
   { id: 'green-coral',     name: 'Green Coral',     cost: 150,  renderScale: 2.6, assetPath: 'assets/brysia/decorations/green_coral_1.png' },
   { id: 'orange-coral',    name: 'Orange Coral',    cost: 180,  renderScale: 2.6, assetPath: 'assets/brysia/decorations/orange_coral_1.png' },
-  { id: 'giant-clam',      name: 'Giant Clam',      cost: 220,  renderScale: 2.4, assetPath: 'assets/brysia/decorations/big_shell.png' },
+  { id: 'giant-clam',      name: 'Giant Clam',      cost: 220,  renderScale: 1.9, assetPath: 'assets/brysia/decorations/big_shell.png' },
   { id: 'red-anemone',     name: 'Red Anemone',     cost: 280,  renderScale: 2.6, assetPath: 'assets/brysia/decorations/red_plant_1.png' },
   { id: 'barrel',          name: 'Barrel',          cost: 350,  renderScale: 2.4, assetPath: 'assets/brysia/decorations/barrel_1.png' },
   { id: 'driftwood',       name: 'Driftwood',       cost: 450,  renderScale: 2.8, assetPath: 'assets/brysia/decorations/dead_tree.png' },

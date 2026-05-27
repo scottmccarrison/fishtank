@@ -11,13 +11,13 @@
 
 /** Control points (x, surfaceY) left -> right; linearly interpolated between. */
 const PROFILE: { x: number; y: number }[] = [
-  { x: 0, y: 392 },
-  { x: 45, y: 374 },
-  { x: 135, y: 372 }, // high-left plateau (landmark / massif sit up here)
-  { x: 210, y: 392 },
-  { x: 300, y: 412 },
-  { x: 380, y: 424 },
-  { x: 450, y: 430 }, // low-right open sand
+  { x: 0, y: 378 },
+  { x: 60, y: 360 },
+  { x: 150, y: 362 }, // high-left plateau (landmark / massif sit up here)
+  { x: 230, y: 388 },
+  { x: 320, y: 414 },
+  { x: 400, y: 430 },
+  { x: 450, y: 436 }, // low-right open sand
 ];
 
 /** Surface y of the substrate at horizontal position x (clamped to the profile ends). */

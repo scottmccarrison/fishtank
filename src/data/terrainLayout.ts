@@ -39,7 +39,7 @@ export function terrainRockFile(rockId: string): string {
  * x = center, y = bottom-anchor; rendered at scale * CONTENT_SCALE.
  */
 export const TERRAIN_LAYOUT: TerrainRock[] = [
-  { rockId: 'stone-7', x: 115, y: 446, scale: 2.0, band: 'back' },  // big arch - back-left massif
+  { rockId: 'stone-7', x: 190, y: 446, scale: 2.0, band: 'back' },  // big arch - mid-back, clear of the landmark
   { rockId: 'stone-5', x: 235, y: 408, scale: 2.2, band: 'back' },  // flat-top shelf (elevated, holds coral)
   { rockId: 'stone-6', x: 372, y: 430, scale: 1.7, band: 'back' },  // right ledge
   { rockId: 'stone-3', x: 40,  y: 452, scale: 1.8, band: 'front' }, // foreground frame, bottom-left

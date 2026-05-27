@@ -31,12 +31,12 @@ export const DECORATION_SLOTS: DecorationSlot[] = [
  * so the y values here are approximations for self-consistency only.
  */
 export const DECORATION_LAYOUT: Record<string, { x: number; y: number }> = {
-  landmark: { x: 95,  y: 373 }, // high-left plateau
-  greenery: { x: 150, y: 376 }, // left-mid, stepping down the slope
-  coral:    { x: 220, y: 394 }, // mid slope
-  wreck:    { x: 305, y: 413 }, // right-center floor
-  treasure: { x: 360, y: 421 }, // lower right
-  shells:   { x: 405, y: 426 }, // low-right open sand
+  landmark: { x: 75,  y: 360 }, // high-left plateau - the anchor, well clear of the castle
+  greenery: { x: 140, y: 362 }, // left mass, beside/below the landmark
+  coral:    { x: 215, y: 383 }, // mid slope (small accent)
+  shells:   { x: 255, y: 395 }, // mid-right (clam), nestled before the castle
+  wreck:    { x: 360, y: 422 }, // right secondary mass (castle), spaced from the landmark
+  treasure: { x: 420, y: 432 }, // far-right low corner accent
 };
 
 export const SLOT_BY_ID = new Map(DECORATION_SLOTS.map((s) => [s.id, s]));
