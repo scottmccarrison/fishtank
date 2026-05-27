@@ -31,5 +31,17 @@ export function terrainRockFile(rockId: string): string {
   return rockId.replace('stone-', 'stone_') + '.png';
 }
 
-/** Baked aquascape (authored in the editor). Empty until baked -> renders nothing. */
-export const TERRAIN_LAYOUT: TerrainRock[] = [];
+/**
+ * Baked aquascape. A designed starting composition (refine in the editor):
+ * a left-high -> right-low terrace - big back-left arch massif, an elevated mid
+ * shelf and a right ledge (all 'back', dimmed/receding) - framed by two
+ * foreground boulders ('front', bottom corners, fish pass behind them).
+ * x = center, y = bottom-anchor; rendered at scale * CONTENT_SCALE.
+ */
+export const TERRAIN_LAYOUT: TerrainRock[] = [
+  { rockId: 'stone-7', x: 115, y: 446, scale: 2.0, band: 'back' },  // big arch - back-left massif
+  { rockId: 'stone-5', x: 235, y: 408, scale: 2.2, band: 'back' },  // flat-top shelf (elevated, holds coral)
+  { rockId: 'stone-6', x: 372, y: 430, scale: 1.7, band: 'back' },  // right ledge
+  { rockId: 'stone-3', x: 40,  y: 452, scale: 1.8, band: 'front' }, // foreground frame, bottom-left
+  { rockId: 'stone-4', x: 412, y: 454, scale: 2.0, band: 'front' }, // foreground frame, bottom-right
+];

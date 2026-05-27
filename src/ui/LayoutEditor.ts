@@ -1,8 +1,8 @@
 import type Phaser from 'phaser';
-import { DECORATION_SLOTS } from '../data/decorationSlots.js';
+import { DECORATION_SLOTS, DECORATION_LAYOUT } from '../data/decorationSlots.js';
 import { DECORATION_BY_ID } from '../data/decorations.js';
 import { FISH_SPECIES } from '../data/fish.js';
-import { TERRAIN_ROCKS } from '../data/terrainLayout.js';
+import { TERRAIN_ROCKS, TERRAIN_LAYOUT } from '../data/terrainLayout.js';
 import { CONSTANTS } from '../data/constants.js';
 
 /**
@@ -129,8 +129,9 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
 
   // Pre-populate authored state from saved (with sensible defaults)
   for (const slot of DECORATION_SLOTS) {
-    const sp = saved.slots?.[slot.id];
-    slotPos[slot.id] = sp ?? { x: 0, y: FLOOR_TOP_Y };
+    // Seed from in-progress edits, else the baked composition, else a safe fallback.
+    const sp = saved.slots?.[slot.id] ?? DECORATION_LAYOUT[slot.id];
+    slotPos[slot.id] = sp ? { x: sp.x, y: sp.y } : { x: 0, y: FLOOR_TOP_Y };
   }
   for (const [id, deco] of DECORATION_BY_ID) {
     decorScale[id] = saved.decorScale?.[id] ?? deco.renderScale;
@@ -144,14 +145,12 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
   const DEFAULT_TERRAIN_STEP = 65;
   TERRAIN_ROCKS.forEach((rockId, i) => {
     const saved_entry = saved.terrainAll?.find((e) => e.rockId === rockId);
-    terrainMap[rockId] = saved_entry ?? {
-      rockId,
-      x: DEFAULT_TERRAIN_START_X + i * DEFAULT_TERRAIN_STEP,
-      y: FLOOR_TOP_Y,
-      scale: 2,
-      band: 'back',
-      included: false,
-    };
+    const baked = TERRAIN_LAYOUT.find((t) => t.rockId === rockId);
+    // In-progress edits win; else baked rocks come in included at their composed
+    // spot; else the rock parks off to the side, excluded.
+    terrainMap[rockId] = saved_entry ?? (baked
+      ? { rockId, x: baked.x, y: baked.y, scale: baked.scale, band: baked.band, included: true }
+      : { rockId, x: DEFAULT_TERRAIN_START_X + i * DEFAULT_TERRAIN_STEP, y: FLOOR_TOP_Y, scale: 2, band: 'back', included: false });
   });
 
   // --- Mode ---
@@ -186,15 +185,10 @@ export function createLayoutEditor(scene: Phaser.Scene): LayoutEditor {
   // ---------------------------------------------------------------------------
   // DECOR items - one per slot, showing tier 0 decoration
   // ---------------------------------------------------------------------------
-  const DECOR_START_X = 60;
-  const DECOR_STEP_X = 70;
-  DECORATION_SLOTS.forEach((slot, i) => {
+  DECORATION_SLOTS.forEach((slot) => {
     const pos = slotPos[slot.id]!;
-    const startX = DECOR_START_X + i * DECOR_STEP_X;
-    // If no authored position, spread them in a row near the top
-    const x = (saved.slots?.[slot.id] == null) ? startX : pos.x;
-    const y = (saved.slots?.[slot.id] == null) ? 100 : pos.y;
-    slotPos[slot.id] = { x, y };
+    const x = pos.x;
+    const y = pos.y;
 
     const decoId = slot.tiers[0]!;
     const scale = decorScale[decoId] ?? DECORATION_BY_ID.get(decoId)?.renderScale ?? 3;

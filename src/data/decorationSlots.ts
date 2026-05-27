@@ -25,14 +25,19 @@ export const DECORATION_SLOTS: DecorationSlot[] = [
   { id: 'wreck',     name: 'Wreck',     tiers: ['sunken-ship', 'stone-castle'] },
 ];
 
-/** Provisional slot positions (PR2 will bake authored ones). x in [0,450], y = floor-ish. */
+/**
+ * Slot positions (bottom-anchor x/y). Designed composition - refine in the editor.
+ * Distributed across 3 height bands and clustered (not a row): landmark + greenery
+ * high on the back-left massif, coral elevated on the mid shelf, wreck + treasure
+ * low on the right floor (overlapping), shells low on the front sand.
+ */
 export const DECORATION_LAYOUT: Record<string, { x: number; y: number }> = {
-  greenery:  { x: 70,  y: 420 },
-  coral:     { x: 150, y: 420 },
-  shells:    { x: 235, y: 432 },
-  treasure:  { x: 320, y: 420 },
-  landmark:  { x: 405, y: 420 },
-  wreck:     { x: 225, y: 445 },
+  landmark: { x: 110, y: 360 }, // high - vertical centerpiece on the back-left massif
+  greenery: { x: 175, y: 398 }, // left-mid, cascading down from the massif
+  coral:    { x: 235, y: 356 }, // elevated - sits on the mid shelf (stone-5)
+  wreck:    { x: 300, y: 420 }, // low - big mass on the right floor
+  treasure: { x: 348, y: 428 }, // low - tucked right of the wreck (overlaps for depth)
+  shells:   { x: 205, y: 446 }, // lowest - front sand, foreground
 };
 
 export const SLOT_BY_ID = new Map(DECORATION_SLOTS.map((s) => [s.id, s]));
