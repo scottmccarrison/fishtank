@@ -1,6 +1,6 @@
-# CLAUDE.md - fishtank
+# AGENTS.md - fishtank
 
-Project context for Claude Code. Read this before working in this repo.
+Project context for the agent harness. Read this before working in this repo.
 
 ## What this is
 
